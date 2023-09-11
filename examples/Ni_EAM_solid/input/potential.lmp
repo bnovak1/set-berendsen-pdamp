@@ -1,0 +1,2 @@
+pair_style      eam/alloy
+pair_coeff      * * examples/Ni_EAM_solid/input/NiAl.eam.alloy Ni

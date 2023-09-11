@@ -1,0 +1,25 @@
+{
+    "CORES": 4,
+    "TSTART": 1650,
+    "PSET": [
+        30000,
+        0
+    ],
+    "SIM_TIME_STAGE2": 3,
+    "PDAMP_INITIAL": 30000,
+    "T_TARGET": 1.0,
+    "DT_TOL": 1e-3,
+    "INDIR": "examples/Ni_EAM_solid/input",
+    "POTENTIAL_FILE": "potential.lmp",
+    "LAMMPS_INPUT": {
+        "STAGE1": {
+            "TEMPLATE": "stage1_template.lmp",
+            "INPUT": "stage1.lmp"
+        },
+        "STAGE2": {
+            "TEMPLATE": "stage2_template.lmp",
+            "INPUT": "stage2.lmp"
+        }
+    },
+    "OUTDIR": "examples/Ni_EAM_solid/output"
+}
