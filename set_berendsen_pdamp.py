@@ -48,14 +48,17 @@ class SetBerendsenPdamp:
         # Temperature
         self.temperature = config["TSTART"]
 
+        # Set point pressures in LAMMPS
+        self.pset = config["PSET"]
+        
+        # Simulation time for stage 2
+        self.sim_time_stage2 = config["SIM_TIME_STAGE2"]
+
         # Target relaxation time
         self.t_target = config["T_TARGET"]
 
         # Tolerance for dt = |t_target - t_set|
         self.dt_tol = config["DT_TOL"]
-
-        # Set point pressures in LAMMPS
-        self.pset = config["PSET"]
 
         # Input directory
         self.indir = config["INDIR"]
@@ -115,21 +118,30 @@ class SetBerendsenPdamp:
         Stop when dt is less than self.dt_tol.
         """
 
-        # Get estimate of derivative of pdamp wrt dt
+        # Compute dt for self.pdamp_initial, but halve self.pdamp_initial until 
+        # self.sim_time_stage2 > dt + self.t_target (t_set is less than simulation time)
+        # It improves convergence to start with a reasonable value of pdamp.
         dt = self.compute_dt(self.pdamp_initial)
+        while dt + self.t_target > self.sim_time_stage2:
+            self.pdamp_initial /= 2
+            dt = self.compute_dt(self.pdamp_initial)
         self.pdamp = np.array([dt, self.pdamp_initial])
+        
+        # Get estimate of derivative of pdamp wrt dt
         dt = self.compute_dt(1.01 * self.pdamp_initial)
         self.pdamp = np.row_stack((self.pdamp, [dt, 1.01 * self.pdamp_initial]))
         deriv = (self.pdamp[1, 1] - self.pdamp[0, 1]) / (self.pdamp[1, 0] - self.pdamp[0, 0])
+        print( "dt:", self.pdamp[0, -1], "| pdamp:", self.pdamp[1, -1], "\n")
 
         # Estimate pdamp that gives tset close to target
         dt1 = self.pdamp[:, 0].mean()
         pdamp1 = self.pdamp[:, 1].mean()
         pdamp2 = -deriv * dt1 + pdamp1
 
-        # Compute dt for pdamp2ives dt close to 0, compute new dt
+        # Compute dt for pdamp2 that gives dt close to 0, compute new dt
         dt = self.compute_dt(pdamp2)
         self.pdamp = np.row_stack((self.pdamp, [dt, pdamp2]))
+        print( "dt:", self.pdamp[0, -1], "| pdamp:", self.pdamp[1, -1], "\n")
 
         # Should be close to target, so check if difference between P0 and Pset is large enough
         # compared to fluctuations in pressure
@@ -143,6 +155,8 @@ class SetBerendsenPdamp:
             pdamp = np.polyval(poly, 0)
             dt = self.compute_dt(pdamp)
             self.pdamp = np.row_stack((self.pdamp, [dt, pdamp]))
+            self._check_f()
+            print( "dt:", self.pdamp[0, -1], "| pdamp:", self.pdamp[1, -1], "\n")
 
     def compute_dt(self, pdamp):
         """
@@ -166,8 +180,8 @@ class SetBerendsenPdamp:
 
     def edit_templates(self, pdamp):
         """
-        Replace [LOG_FILE], [TSTART], [PDAMP], [PSET], [POTENTIAL_FILE], [PRESSURE_FILE], &
-        [DATA_FILE] in LAMMPS template files and write to new input files.
+        Replace [LOG_FILE], [TSTART], [PDAMP], [PSET], [POTENTIAL_FILE], [PRESSURE_FILE], 
+        [SIM_TIME], & [DATA_FILE] in LAMMPS template files and write to new input files.
         """
 
         try:
@@ -211,22 +225,24 @@ class SetBerendsenPdamp:
             [
                 "[LOG_FILE]",
                 "[TSTART]",
-                "[POTENTIAL_FILE]",
-                "[PDAMP]",
-                "[PSET]",
-                "[PRESSURE_FILE]",
                 "[DATA_FILE]",
+                "[POTENTIAL_FILE]",
+                "[PSET]",
+                "[PDAMP]",
+                "[PRESSURE_FILE]",
+                "[SIM_TIME]"
             ]
         )
         replacements = np.array(
             [
                 str(Path(self.outdir, "stage2.log")),
                 str(self.temperature),
-                self.potential_file,
-                str(pdamp),
-                str(self.pset[1]),
-                self.pressure_files[1],
                 self.data_file,
+                self.potential_file,
+                str(self.pset[1]),
+                str(pdamp),
+                self.pressure_files[1],
+                self.sim_time_stage2
             ]
         )
 
@@ -288,7 +304,7 @@ class SetBerendsenPdamp:
         """
 
         params = lmfit.Parameters()
-        params.add("tau", value=self.t_target / 4, min=0.0, max=10.0)
+        params.add("tau", value=self.t_target / 4, min=0.0)
         params.add("p0", value=self.pressure[0])
         params.add("pset", value=self.pset[1], vary=False)
 
@@ -325,35 +341,33 @@ class SetBerendsenPdamp:
 
     def _check_f(self):
         """
-        Check ratio of |P0 - Pset| to pressure fluctuations, f
+        Check ratio of |P0 - Pset| to standard deviation of pressure, f
         """
 
         ind = self.time > self.t_target
         press = self.pressure[ind]
         p0 = self.fit.params["p0"].value
         dp = np.abs(p0 - self.pset[1])
-        mn = np.min(press - self.pset[1])
-        mx = np.max(press - self.pset[1])
-        fluct = (-mn + mx) / 2
-        f = dp / fluct
+        ps = press.std(ddof=1)
+        f = dp / ps
 
-        # If f is less than 1.5, raise error
+        # If f is less than 2.5, raise error
         str_assert = (
             "Ratio of |P0 - Pset| to pressure fluctuations, f = "
             + str(f)
-            + " Ratio of |P0 - Pset| to fluctuations in pressure is too small (<1.5). The value of pdamp may be unreliable. Modify Pset for stage 1 or stage 2 to increase |P0 - Pset|. f should be > about 3 to get accurate values of pdamp and values close to 1 or below 1 could give unreasonable values."
+            + " Ratio of |P0 - Pset| to fluctuations in pressure is too small (< 2.5). The value of pdamp may be unreliable. Modify Pset for stage 1 or stage 2 to increase |P0 - Pset|. f should be > about 10 to get accurate values of pdamp and values < 2.5 could give unreasonable values and convergence will likely be very slow."
         )
-        assert f >= 1.5, str_assert
+        assert f >= 2.5, str_assert
 
-        # If f is between 1.5 and 3, raise warning
-        if f < 3 and f >= 1.5:
+        # If f is between 4 and 10, raise warning
+        if f < 10 and f >= 2.5:
             print("\nRatio of |P0 - Pset| to pressure fluctuations, f =", f)
             print("WARNING: |P0 - Pset| is not large enough compared to fluctuations in pressure. ")
             print(
-                "For f between 1.5 and 3, reasonable but perhaps less accurate values of pdamp will be found."
+                "For f between 4 and 10, reasonable but perhaps less accurate values of pdamp will be found."
             )
             print(
-                "To get more accurate values of pdamp, modify Pset for stage 1 or stage 2 to increase |P0 - Pset| above 3.\n"
+                "To get more accurate values of pdamp, modify Pset for stage 1 or stage 2 to increase |P0 - Pset| above 10.\n"
             )
 
     def _plot_fit(self):
