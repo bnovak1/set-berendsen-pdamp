@@ -31,5 +31,4 @@ variable        t equal time
 variable        p equal press
 fix             writepressure all print 10 "$t $p" &
                     file [PRESSURE_FILE] screen no
-variable        n equal [SIM_TIME]*1000
-run             $n
+run             $([SIM_TIME]/dt)
