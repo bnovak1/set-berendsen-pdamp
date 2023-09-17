@@ -18,8 +18,10 @@ In the absence of noise or any systematic errors in fitting, pdamp is linearly r
 t_target, so only a few short simulations are required.
 """
 
+import argparse
 import json
 from pathlib import Path
+
 import lmfit
 import matplotlib.pyplot as plt
 import numpy as np
@@ -126,12 +128,13 @@ class SetBerendsenPdamp:
             self.pdamp_initial /= 2
             dt = self.compute_dt(self.pdamp_initial)
         self.pdamp = np.array([dt, self.pdamp_initial])
+        print("dt:", dt, "| pdamp:", self.pdamp_initial)
         
         # Get estimate of derivative of pdamp wrt dt
         dt = self.compute_dt(1.01 * self.pdamp_initial)
         self.pdamp = np.row_stack((self.pdamp, [dt, 1.01 * self.pdamp_initial]))
         deriv = (self.pdamp[1, 1] - self.pdamp[0, 1]) / (self.pdamp[1, 0] - self.pdamp[0, 0])
-        print( "dt:", self.pdamp[0, -1], "| pdamp:", self.pdamp[1, -1], "\n")
+        print("dt:", self.pdamp[-1, 0], "| pdamp:", self.pdamp[-1, 1])
 
         # Estimate pdamp that gives tset close to target
         dt1 = self.pdamp[:, 0].mean()
@@ -141,7 +144,7 @@ class SetBerendsenPdamp:
         # Compute dt for pdamp2 that gives dt close to 0, compute new dt
         dt = self.compute_dt(pdamp2)
         self.pdamp = np.row_stack((self.pdamp, [dt, pdamp2]))
-        print( "dt:", self.pdamp[0, -1], "| pdamp:", self.pdamp[1, -1], "\n")
+        print("dt:", self.pdamp[-1, 0], "| pdamp:", self.pdamp[-1, 1])
 
         # Should be close to target, so check if difference between P0 and Pset is large enough
         # compared to fluctuations in pressure
@@ -156,7 +159,7 @@ class SetBerendsenPdamp:
             dt = self.compute_dt(pdamp)
             self.pdamp = np.row_stack((self.pdamp, [dt, pdamp]))
             self._check_f()
-            print( "dt:", self.pdamp[0, -1], "| pdamp:", self.pdamp[1, -1], "\n")
+            print("dt:", self.pdamp[-1, 0], "| pdamp:", self.pdamp[-1, 1])
 
     def compute_dt(self, pdamp):
         """
@@ -406,3 +409,19 @@ class SetBerendsenPdamp:
         )
         plt.savefig(Path(self.outdir, "fit.png"))
         plt.close()
+
+if __name__ == "__main__":
+    
+    parser = argparse.ArgumentParser(
+        description="Automatically set Pdamp for Brendsen barostat by fitting to a target relaxation time, t_target."
+    )
+    parser.add_argument(
+        "config_file",
+        metavar="config_file",
+        type=str,
+        help="JSON file with input parameters.",
+    )
+    args = parser.parse_args()
+
+    set_pdamp = SetBerendsenPdamp(args.config_file)
+    set_pdamp()
