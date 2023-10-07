@@ -1,4 +1,7 @@
-# Generated with assistance from CodiumAI
+"""
+Tests generated with assistance from CodiumAI
+"""
+
 import json
 from pathlib import Path
 
@@ -17,46 +20,54 @@ class TestSetBerendsenPdamp:
         """
         Test that the class can be instantiated with a valid JSON config file
         """
-        # Create a valid JSON config file
-        config = {
-           "CORES": 4,
-            "TSTART": 1650,
-            "SEED": 8607844,
-            "PSET": [
-                30000,
-                0
-            ],
-            "SIM_TIME_STAGE2": 3,
-            "PDAMP_INITIAL": 30000,
-            "T_TARGET": 1.0,
-            "DT_TOL": 0.001,
-            "INDIR": "tests/input",
-            "POTENTIAL_FILE": "potential.lmp",
-            "LAMMPS_INPUT": {
-                "STAGE1": {
-                    "TEMPLATE": "stage1_template.lmp",
-                    "INPUT": "stage1.lmp"
-                },
-                "STAGE2": {
-                    "TEMPLATE": "stage2_template.lmp",
-                    "INPUT": "stage2.lmp"
-                }
-            },
-            "OUTDIR": "tests/output"
-        }
-        config_file = Path("tests/config_test.json")
-        with open(config_file, 'w', encoding="utf-8") as f:
-            json.dump(config, f)
     
         # Instantiate the SetBerendsenPdamp class with the valid JSON config file
-        set_berendsen_pdamp = SetBerendsenPdamp(config_file)
+        config_file = Path("tests/input/config.json")
+        sbp = SetBerendsenPdamp(config_file)
     
         # Assert that the class was instantiated successfully
-        assert isinstance(set_berendsen_pdamp, SetBerendsenPdamp)
+        assert isinstance(sbp, SetBerendsenPdamp)
         
-        # Remove the config file
-        config_file.unlink()
+    def test_edit_templates(self):
+        """
+        Test that the class can edit LAMMPS input file templates correctly
+        """
 
+        # Instantiate the SetBerendsenPdamp class
+        config_file = Path("tests/input/config.json")
+        sbp = SetBerendsenPdamp(config_file)
+        
+        # Value of PDAMP_INITIAL from config.json
+        with open(config_file, 'r', encoding="utf-8") as jf:
+            pdamp = json.load(jf)["PDAMP_INITIAL"]
+        
+        # Call the edit_templates method
+        sbp.edit_templates(pdamp)
+            
+        # LAMMPS input file names
+        stage1_input = Path("tests/input/stage1.lmp")
+        stage2_input = Path("tests/input/stage2.lmp")
+        stage1_input_expected = Path("tests/input/stage1_expected.lmp")
+        stage2_input_expected = Path("tests/input/stage2_expected.lmp")
+        
+        # Read LAMMPS input files
+        with open(stage1_input, 'r', encoding='utf-8') as f:
+            stage1_data = f.read()
+        with open(stage2_input, 'r', encoding='utf-8') as f:
+            stage2_data = f.read()
+        with open(stage1_input_expected, 'r', encoding='utf-8') as f:
+            stage1_data_expected = f.read()
+        with open(stage2_input_expected, 'r', encoding='utf-8') as f:
+            stage2_data_expected = f.read()
+            
+        # Check that the LAMMPS input files are correct
+        assert stage1_data == stage1_data_expected
+        assert stage2_data == stage2_data_expected
+        
+        # Remove the LAMMPS input files that were created
+        stage1_input.unlink()
+        stage2_input.unlink()
+        
     # Test that the class can optimize pdamp and plot the fit without errors
     # def test_optimize_pdamp_and_plot_fit(self, mocker):
     #     # Create a mock for the compute_dt method
@@ -111,3 +122,4 @@ class TestSetBerendsenPdamp:
     
     #     # Assert that the dt value is correct
     #     assert dt == 0.5
+

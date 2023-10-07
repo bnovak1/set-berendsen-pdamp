@@ -1,0 +1,44 @@
+# Log file name
+log             tests/output/stage1.log
+
+# Temperature
+variable        T equal 1650
+
+# Random seed
+variable        s equal 8607844
+
+units           metal
+atom_style      atomic
+
+# fcc lattice
+lattice         fcc 3.56
+region          box block 0 5 0 5 0 5
+create_box      1 box
+create_atoms    1 box
+
+# potential
+include         tests/input/potential.lmp
+  
+neigh_modify    delay 0 check yes
+
+# Time step
+timestep        0.001
+
+# Set velocities
+velocity        all create $T $s dist gaussian
+velocity        all zero linear
+
+# Thermostat & barostat
+fix             thermostat all temp/csvr $T $T $(100.0*dt) $s
+fix             barostat all press/berendsen iso 30000 30000 30000
+fix             integrate all nve
+
+# Equilibrate for 10 ps
+variable        t equal time
+variable        p equal press
+fix             writepressure all print 100 "$t $p" &
+                    file tests/output/pressure1.dat screen no
+run             10000
+
+# Write data file
+write_data      tests/input/stage1.data

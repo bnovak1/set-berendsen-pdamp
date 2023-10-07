@@ -1,0 +1,34 @@
+# Log file name
+log             tests/output/stage2.log
+
+# Temperature
+variable        T equal 1650
+
+# Random seed
+variable        s equal 8607844
+
+units           metal
+atom_style      atomic
+
+# Read in data file
+read_data       tests/input/stage1.data
+
+# potential
+include         tests/input/potential.lmp
+  
+neigh_modify    delay 0 check yes
+
+# Time step
+timestep        0.001
+
+# Thermostat & barostat
+fix             thermostat all temp/csvr $T $T $(100.0*dt) $s
+fix             barostat all press/berendsen iso 0 0 30000
+fix             integrate all nve
+
+# Equilibrate for 3 ps
+variable        t equal time
+variable        p equal press
+fix             writepressure all print 10 "$t $p" &
+                    file tests/output/pressure2.dat screen no
+run             $(3/dt)
