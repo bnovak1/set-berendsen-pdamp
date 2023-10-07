@@ -49,6 +49,9 @@ class SetBerendsenPdamp:
 
         # Temperature
         self.temperature = config["TSTART"]
+        
+        # Random seed
+        self.seed = config["SEED"]
 
         # Set point pressures in LAMMPS
         self.pset = config["PSET"]
@@ -92,11 +95,11 @@ class SetBerendsenPdamp:
             str(Path(self.outdir, "pressure2.dat")),
         ]
 
-        # Time data from LAMMPS
-        self.time = None
+        # Time data from LAMMPS, just initialized here
+        self.time = 0
 
-        # Pressure data from LAMMPS
-        self.pressure = None
+        # Pressure data from LAMMPS, just initialized here
+        self.pressure = 0
 
         # tset and pdamp data from fits
         self.pdamp = None
@@ -183,7 +186,7 @@ class SetBerendsenPdamp:
 
     def edit_templates(self, pdamp):
         """
-        Replace [LOG_FILE], [TSTART], [PDAMP], [PSET], [POTENTIAL_FILE], [PRESSURE_FILE], 
+        Replace [LOG_FILE], [TSTART], [SEED], [PDAMP], [PSET], [POTENTIAL_FILE], [PRESSURE_FILE], 
         [SIM_TIME], & [DATA_FILE] in LAMMPS template files and write to new input files.
         """
 
@@ -198,29 +201,31 @@ class SetBerendsenPdamp:
                 [
                     "[LOG_FILE]",
                     "[TSTART]",
+                    "[SEED]",
                     "[POTENTIAL_FILE]",
                     "[PDAMP]",
                     "[PSET]",
                     "[PRESSURE_FILE]",
-                    "[DATA_FILE]",
+                    "[DATA_FILE]"
                 ]
             )
             replacements = np.array(
                 [
                     str(Path(self.outdir, "stage1.log")),
                     str(self.temperature),
+                    str(self.seed),
                     self.potential_file,
                     str(pdamp),
                     str(self.pset[0]),
                     self.pressure_files[0],
-                    self.data_file,
+                    self.data_file
                 ]
             )
 
             # read stage 1 template file & make replacements
             with open(self.stage1_template, "r", encoding="utf-8") as fid:
                 template_data = np.array(fid.readlines())
-
+            
             self.replace_in_template(template_data, to_replace, replacements, self.stage1_input)
 
         # Stage 2 template replacements
@@ -228,6 +233,7 @@ class SetBerendsenPdamp:
             [
                 "[LOG_FILE]",
                 "[TSTART]",
+                "[SEED]",
                 "[DATA_FILE]",
                 "[POTENTIAL_FILE]",
                 "[PSET]",
@@ -240,6 +246,7 @@ class SetBerendsenPdamp:
             [
                 str(Path(self.outdir, "stage2.log")),
                 str(self.temperature),
+                str(self.seed),
                 self.data_file,
                 self.potential_file,
                 str(self.pset[1]),

@@ -5,7 +5,7 @@ log             [LOG_FILE]
 variable        T equal [TSTART]
 
 # Random seed
-variable        s equal 5812775
+variable        s equal [SEED]
 
 units           metal
 atom_style      atomic

@@ -1,6 +1,7 @@
 {
     "CORES": 4,
     "TSTART": 1650,
+    "SEED": 8607844,
     "PSET": [
         30000,
         0
@@ -8,7 +9,7 @@
     "SIM_TIME_STAGE2": 3,
     "PDAMP_INITIAL": 30000,
     "T_TARGET": 1.0,
-    "DT_TOL": 1e-3,
+    "DT_TOL": 0.001,
     "INDIR": "examples/Ni_EAM_solid/input",
     "POTENTIAL_FILE": "potential.lmp",
     "LAMMPS_INPUT": {
