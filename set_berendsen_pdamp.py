@@ -49,13 +49,13 @@ class SetBerendsenPdamp:
 
         # Temperature
         self.temperature = config["TSTART"]
-        
+
         # Random seed
         self.seed = config["SEED"]
 
         # Set point pressures in LAMMPS
         self.pset = config["PSET"]
-        
+
         # Simulation time for stage 2
         self.sim_time_stage2 = config["SIM_TIME_STAGE2"]
 
@@ -123,7 +123,7 @@ class SetBerendsenPdamp:
         Stop when dt is less than self.dt_tol.
         """
 
-        # Compute dt for self.pdamp_initial, but halve self.pdamp_initial until 
+        # Compute dt for self.pdamp_initial, but halve self.pdamp_initial until
         # self.sim_time_stage2 > dt + self.t_target (t_set is less than simulation time)
         # It improves convergence to start with a reasonable value of pdamp.
         dt = self.compute_dt(self.pdamp_initial)
@@ -132,7 +132,7 @@ class SetBerendsenPdamp:
             dt = self.compute_dt(self.pdamp_initial)
         self.pdamp = np.array([dt, self.pdamp_initial])
         print("dt:", dt, "| pdamp:", self.pdamp_initial)
-        
+
         # Get estimate of derivative of pdamp wrt dt
         dt = self.compute_dt(1.01 * self.pdamp_initial)
         self.pdamp = np.row_stack((self.pdamp, [dt, 1.01 * self.pdamp_initial]))
@@ -186,7 +186,7 @@ class SetBerendsenPdamp:
 
     def edit_templates(self, pdamp):
         """
-        Replace [LOG_FILE], [TSTART], [SEED], [PDAMP], [PSET], [POTENTIAL_FILE], [PRESSURE_FILE], 
+        Replace [LOG_FILE], [TSTART], [SEED], [PDAMP], [PSET], [POTENTIAL_FILE], [PRESSURE_FILE],
         [SIM_TIME], & [DATA_FILE] in LAMMPS template files and write to new input files.
         """
 
@@ -206,7 +206,7 @@ class SetBerendsenPdamp:
                     "[PDAMP]",
                     "[PSET]",
                     "[PRESSURE_FILE]",
-                    "[DATA_FILE]"
+                    "[DATA_FILE]",
                 ]
             )
             replacements = np.array(
@@ -218,14 +218,14 @@ class SetBerendsenPdamp:
                     str(pdamp),
                     str(self.pset[0]),
                     self.pressure_files[0],
-                    self.data_file
+                    self.data_file,
                 ]
             )
 
             # read stage 1 template file & make replacements
             with open(self.stage1_template, "r", encoding="utf-8") as fid:
                 template_data = np.array(fid.readlines())
-            
+
             self.replace_in_template(template_data, to_replace, replacements, self.stage1_input)
 
         # Stage 2 template replacements
@@ -239,7 +239,7 @@ class SetBerendsenPdamp:
                 "[PSET]",
                 "[PDAMP]",
                 "[PRESSURE_FILE]",
-                "[SIM_TIME]"
+                "[SIM_TIME]",
             ]
         )
         replacements = np.array(
@@ -252,7 +252,7 @@ class SetBerendsenPdamp:
                 str(self.pset[1]),
                 str(pdamp),
                 self.pressure_files[1],
-                self.sim_time_stage2
+                self.sim_time_stage2,
             ]
         )
 
@@ -267,16 +267,16 @@ class SetBerendsenPdamp:
         Replace toreplace strings in data with replacements strings and write to outfile.
         """
 
-        assert (
-            toreplace.shape[0] == replacements.shape[0]
-        ), "Number of things to replace must match number of things to replace them with."
+        if toreplace.shape[0] != replacements.shape[0]:
+            raise ValueError(
+                "Number of things to replace must match number of things to replace them with."
+            )
 
-        for ireplace in range(toreplace.shape[0]):
-            data = np.core.defchararray.replace(data, toreplace[ireplace], replacements[ireplace])
+        for to_rep, rep in zip(toreplace, replacements):
+            data = np.core.defchararray.replace(data, to_rep, rep)
 
         with open(outfile, "w") as f:
-            for line in data:
-                f.write(line)
+            f.write("".join(data))
 
     def simulate(self):
         """
@@ -417,8 +417,8 @@ class SetBerendsenPdamp:
         plt.savefig(Path(self.outdir, "fit.png"))
         plt.close()
 
+
 if __name__ == "__main__":
-    
     parser = argparse.ArgumentParser(
         description="Automatically set Pdamp for Brendsen barostat by fitting to a target relaxation time, t_target."
     )
