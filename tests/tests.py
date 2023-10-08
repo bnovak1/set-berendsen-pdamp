@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 
 import numpy as np
+import pytest
 from pytest_mock import mocker
 
 from set_berendsen_pdamp import SetBerendsenPdamp
@@ -18,7 +19,7 @@ class TestSetBerendsenPdamp:
     
     def test_instantiation_with_valid_json_config(self):
         """
-        Test that the class can be instantiated with a valid JSON config file
+        Class can be instantiated with a valid JSON config file
         """
     
         # Instantiate the SetBerendsenPdamp class with the valid JSON config file
@@ -27,10 +28,63 @@ class TestSetBerendsenPdamp:
     
         # Assert that the class was instantiated successfully
         assert isinstance(sbp, SetBerendsenPdamp)
+
+    def test_single_string_replacement(self):
+        """
+        Replaces all instances of a single string in data with a replacement string and writes to outfile.
+        """
+
+        data = ["Hello [NAME], ", "Welcome to [CITY]!"]
+        toreplace = np.array(["[NAME]"])
+        replacements = np.array(["John"])
+        outfile = Path("output.txt")
+
+        config_file = Path("tests/input/config.json")
+        sbp = SetBerendsenPdamp(config_file)
+        sbp.replace_in_template(data, toreplace, replacements, outfile)
+
+        with open(outfile, "r", encoding="utf-8") as f:
+            result = f.readlines()
+        outfile.unlink()
+            
+        assert result == ["Hello John, Welcome to [CITY]!"]
+
+    def test_multiple_strings_replacement(self):
+        """
+        Replaces all instances of multiple strings in data with corresponding replacement strings and writes to outfile.
+        """
+        data = ["Hello [NAME], ", "Welcome to [CITY]!"]
+        toreplace = np.array(["[NAME]", "[CITY]"])
+        replacements = np.array(["John", "New York"])
+        outfile = Path("output.txt")
+
+        config_file = Path("tests/input/config.json")
+        sbp = SetBerendsenPdamp(config_file)
+        sbp.replace_in_template(data, toreplace, replacements, outfile)
+
+        with open(outfile, "r", encoding="utf-8") as f:
+            result = f.readlines()
+        outfile.unlink()
+
+        assert result == ["Hello John, Welcome to New York!"]
+        
+    def test_different_lengths_of_toreplace_and_replacements(self):
+        """
+        Throws an error if toreplace and replacements arrays have different lengths.
+        """
+        data = ["Hello [NAME], ", "Welcome to [CITY]!"]
+        toreplace = np.array(["[NAME]"])
+        replacements = np.array(["John", "New York"])
+        outfile = Path("output.txt")
+
+        config_file = Path("tests/input/config.json")
+        sbp = SetBerendsenPdamp(config_file)
+        with pytest.raises(ValueError):
+            sbp.replace_in_template(data, toreplace, replacements, outfile)
         
     def test_edit_templates(self):
         """
-        Test that the class can edit LAMMPS input file templates correctly
+        Edit LAMMPS input file templates
         """
 
         # Instantiate the SetBerendsenPdamp class
