@@ -197,68 +197,60 @@ class SetBerendsenPdamp:
 
         if self.stage1_template and self.stage1_input:
             # Stage 1 template replacements
-            to_replace = np.array(
-                [
-                    "[LOG_FILE]",
-                    "[TSTART]",
-                    "[SEED]",
-                    "[POTENTIAL_FILE]",
-                    "[PDAMP]",
-                    "[PSET]",
-                    "[PRESSURE_FILE]",
-                    "[DATA_FILE]",
-                ]
-            )
-            replacements = np.array(
-                [
-                    str(Path(self.outdir, "stage1.log")),
-                    str(self.temperature),
-                    str(self.seed),
-                    self.potential_file,
-                    str(pdamp),
-                    str(self.pset[0]),
-                    self.pressure_files[0],
-                    self.data_file,
-                ]
-            )
+            to_replace = [
+                "[LOG_FILE]",
+                "[TSTART]",
+                "[SEED]",
+                "[POTENTIAL_FILE]",
+                "[PDAMP]",
+                "[PSET]",
+                "[PRESSURE_FILE]",
+                "[DATA_FILE]",
+            ]
+            replacements = [
+                str(Path(self.outdir, "stage1.log")),
+                str(self.temperature),
+                str(self.seed),
+                self.potential_file,
+                str(pdamp),
+                str(self.pset[0]),
+                self.pressure_files[0],
+                self.data_file,
+            ]
 
             # read stage 1 template file & make replacements
             with open(self.stage1_template, "r", encoding="utf-8") as fid:
-                template_data = np.array(fid.readlines())
+                template_data = ''.join(fid.readlines())
 
             self.replace_in_template(template_data, to_replace, replacements, self.stage1_input)
 
         # Stage 2 template replacements
-        to_replace = np.array(
-            [
-                "[LOG_FILE]",
-                "[TSTART]",
-                "[SEED]",
-                "[DATA_FILE]",
-                "[POTENTIAL_FILE]",
-                "[PSET]",
-                "[PDAMP]",
-                "[PRESSURE_FILE]",
-                "[SIM_TIME]",
-            ]
-        )
-        replacements = np.array(
-            [
-                str(Path(self.outdir, "stage2.log")),
-                str(self.temperature),
-                str(self.seed),
-                self.data_file,
-                self.potential_file,
-                str(self.pset[1]),
-                str(pdamp),
-                self.pressure_files[1],
-                self.sim_time_stage2,
-            ]
-        )
+        to_replace = [
+            "[LOG_FILE]",
+            "[TSTART]",
+            "[SEED]",
+            "[DATA_FILE]",
+            "[POTENTIAL_FILE]",
+            "[PSET]",
+            "[PDAMP]",
+            "[PRESSURE_FILE]",
+            "[SIM_TIME]",
+        ]
+        replacements = [
+            str(Path(self.outdir, "stage2.log")),
+            str(self.temperature),
+            str(self.seed),
+            self.data_file,
+            self.potential_file,
+            str(self.pset[1]),
+            str(pdamp),
+            self.pressure_files[1],
+            str(self.sim_time_stage2),
+        ]
 
         # read stage 2 template file & make replacements
         with open(self.stage2_template, "r", encoding="utf-8") as fid:
-            template_data = np.array(fid.readlines())
+            template_data = ''.join(fid.readlines())
 
         self.replace_in_template(template_data, to_replace, replacements, self.stage2_input)
 
@@ -267,16 +259,16 @@ class SetBerendsenPdamp:
         Replace toreplace strings in data with replacements strings and write to outfile.
         """
 
-        if toreplace.shape[0] != replacements.shape[0]:
+        if len(toreplace) != len(replacements):
             raise ValueError(
                 "Number of things to replace must match number of things to replace them with."
             )
 
         for to_rep, rep in zip(toreplace, replacements):
-            data = np.core.defchararray.replace(data, to_rep, rep)
+            data = data.replace(to_rep, rep)
 
-        with open(outfile, "w") as f:
-            f.write("".join(data))
+        with open(outfile, "w", encoding="utf-8") as f:
+            f.write(data)
 
     def simulate(self):
         """

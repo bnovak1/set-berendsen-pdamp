@@ -34,9 +34,9 @@ class TestSetBerendsenPdamp:
         Replaces all instances of a single string in data with a replacement string and writes to outfile.
         """
 
-        data = ["Hello [NAME], ", "Welcome to [CITY]!"]
-        toreplace = np.array(["[NAME]"])
-        replacements = np.array(["John"])
+        data = "Hello [NAME]\nWelcome to [CITY]!"
+        toreplace = ["[NAME]"]
+        replacements = ["John"]
         outfile = Path("output.txt")
 
         config_file = Path("tests/input/config.json")
@@ -44,18 +44,18 @@ class TestSetBerendsenPdamp:
         sbp.replace_in_template(data, toreplace, replacements, outfile)
 
         with open(outfile, "r", encoding="utf-8") as f:
-            result = f.readlines()
+            result = ''.join(f.readlines())
         outfile.unlink()
             
-        assert result == ["Hello John, Welcome to [CITY]!"]
+        assert result == "Hello John\nWelcome to [CITY]!"
 
     def test_multiple_strings_replacement(self):
         """
         Replaces all instances of multiple strings in data with corresponding replacement strings and writes to outfile.
         """
-        data = ["Hello [NAME], ", "Welcome to [CITY]!"]
-        toreplace = np.array(["[NAME]", "[CITY]"])
-        replacements = np.array(["John", "New York"])
+        data = "Hello [NAME]\nWelcome to [CITY]!"
+        toreplace = ["[NAME]", "[CITY]"]
+        replacements = ["John", "New York"]
         outfile = Path("output.txt")
 
         config_file = Path("tests/input/config.json")
@@ -63,18 +63,18 @@ class TestSetBerendsenPdamp:
         sbp.replace_in_template(data, toreplace, replacements, outfile)
 
         with open(outfile, "r", encoding="utf-8") as f:
-            result = f.readlines()
+            result = ''.join(f.readlines())
         outfile.unlink()
 
-        assert result == ["Hello John, Welcome to New York!"]
+        assert result == "Hello John\nWelcome to New York!"
         
     def test_different_lengths_of_toreplace_and_replacements(self):
         """
         Throws an error if toreplace and replacements arrays have different lengths.
         """
-        data = ["Hello [NAME], ", "Welcome to [CITY]!"]
-        toreplace = np.array(["[NAME]"])
-        replacements = np.array(["John", "New York"])
+        data = "Hello [NAME]\nWelcome to [CITY]!"
+        toreplace = ["[NAME]"]
+        replacements = ["John", "New York"]
         outfile = Path("output.txt")
 
         config_file = Path("tests/input/config.json")
