@@ -19,6 +19,7 @@ t_target, so only a few short simulations are required.
 """
 
 import argparse
+from collections.abc import Iterable
 import json
 from pathlib import Path
 
@@ -190,81 +191,54 @@ class SetBerendsenPdamp:
         [SIM_TIME], & [DATA_FILE] in LAMMPS template files and write to new input files.
         """
 
-        try:
+        if isinstance(pdamp, Iterable) and len(pdamp) > 0:
             pdamp = pdamp[0]
-        except (TypeError, IndexError):
-            pass
 
+        # If stage 1 input and template files are specified, make replacements
         if self.stage1_template and self.stage1_input:
             # Stage 1 template replacements
-            to_replace = [
-                "[LOG_FILE]",
-                "[TSTART]",
-                "[SEED]",
-                "[POTENTIAL_FILE]",
-                "[PDAMP]",
-                "[PSET]",
-                "[PRESSURE_FILE]",
-                "[DATA_FILE]",
-            ]
-            replacements = [
-                str(Path(self.outdir, "stage1.log")),
-                str(self.temperature),
-                str(self.seed),
-                self.potential_file,
-                str(pdamp),
-                str(self.pset[0]),
-                self.pressure_files[0],
-                self.data_file,
-            ]
+            replacements = {
+                "[LOG_FILE]": str(Path(self.outdir, "stage1.log")),
+                "[TSTART]": str(self.temperature),
+                "[SEED]": str(self.seed),
+                "[POTENTIAL_FILE]": self.potential_file,
+                "[PDAMP]": str(pdamp),
+                "[PSET]": str(self.pset[0]),
+                "[PRESSURE_FILE]": self.pressure_files[0],
+                "[DATA_FILE]": self.data_file,
+            }
 
             # read stage 1 template file & make replacements
             with open(self.stage1_template, "r", encoding="utf-8") as fid:
                 template_data = ''.join(fid.readlines())
 
-            self.replace_in_template(template_data, to_replace, replacements, self.stage1_input)
+            self.replace_in_template(template_data, replacements, self.stage1_input)
 
         # Stage 2 template replacements
-        to_replace = [
-            "[LOG_FILE]",
-            "[TSTART]",
-            "[SEED]",
-            "[DATA_FILE]",
-            "[POTENTIAL_FILE]",
-            "[PSET]",
-            "[PDAMP]",
-            "[PRESSURE_FILE]",
-            "[SIM_TIME]",
-        ]
-        replacements = [
-            str(Path(self.outdir, "stage2.log")),
-            str(self.temperature),
-            str(self.seed),
-            self.data_file,
-            self.potential_file,
-            str(self.pset[1]),
-            str(pdamp),
-            self.pressure_files[1],
-            str(self.sim_time_stage2),
-        ]
+        replacements = {
+            "[LOG_FILE]": str(Path(self.outdir, "stage2.log")),
+            "[TSTART]": str(self.temperature),
+            "[SEED]": str(self.seed),
+            "[DATA_FILE]": self.data_file,
+            "[POTENTIAL_FILE]": self.potential_file,
+            "[PSET]": str(self.pset[1]),
+            "[PDAMP]": str(pdamp),
+            "[PRESSURE_FILE]": self.pressure_files[1],
+            "[SIM_TIME]": str(self.sim_time_stage2),
+        }
 
         # read stage 2 template file & make replacements
         with open(self.stage2_template, "r", encoding="utf-8") as fid:
             template_data = ''.join(fid.readlines())
 
-        self.replace_in_template(template_data, to_replace, replacements, self.stage2_input)
+        self.replace_in_template(template_data, replacements, self.stage2_input)
 
-    def replace_in_template(self, data, toreplace, replacements, outfile):
+    def replace_in_template(self, data, replacements, outfile):
         """
-        Replace toreplace strings in data with replacements strings and write to outfile.
+        Replace replacements keys strings in data with replacements values strings and write to outfile.
         """
 
-        if len(toreplace) != len(replacements):
-            raise ValueError(
-                "Number of things to replace must match number of things to replace them with."
-            )
-
-        for to_rep, rep in zip(toreplace, replacements):
+        for to_rep, rep in replacements.items():
             data = data.replace(to_rep, rep)
 
         with open(outfile, "w", encoding="utf-8") as f:

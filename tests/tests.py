@@ -35,13 +35,12 @@ class TestSetBerendsenPdamp:
         """
 
         data = "Hello [NAME]\nWelcome to [CITY]!"
-        toreplace = ["[NAME]"]
-        replacements = ["John"]
+        replacements = {"[NAME]": "John"}
         outfile = Path("output.txt")
 
         config_file = Path("tests/input/config.json")
         sbp = SetBerendsenPdamp(config_file)
-        sbp.replace_in_template(data, toreplace, replacements, outfile)
+        sbp.replace_in_template(data, replacements, outfile)
 
         with open(outfile, "r", encoding="utf-8") as f:
             result = ''.join(f.readlines())
@@ -54,34 +53,19 @@ class TestSetBerendsenPdamp:
         Replaces all instances of multiple strings in data with corresponding replacement strings and writes to outfile.
         """
         data = "Hello [NAME]\nWelcome to [CITY]!"
-        toreplace = ["[NAME]", "[CITY]"]
-        replacements = ["John", "New York"]
+        replacements = {"[NAME]": "John", "[CITY]": "New York"}
         outfile = Path("output.txt")
 
         config_file = Path("tests/input/config.json")
         sbp = SetBerendsenPdamp(config_file)
-        sbp.replace_in_template(data, toreplace, replacements, outfile)
+        sbp.replace_in_template(data, replacements, outfile)
 
         with open(outfile, "r", encoding="utf-8") as f:
             result = ''.join(f.readlines())
         outfile.unlink()
 
         assert result == "Hello John\nWelcome to New York!"
-        
-    def test_different_lengths_of_toreplace_and_replacements(self):
-        """
-        Throws an error if toreplace and replacements arrays have different lengths.
-        """
-        data = "Hello [NAME]\nWelcome to [CITY]!"
-        toreplace = ["[NAME]"]
-        replacements = ["John", "New York"]
-        outfile = Path("output.txt")
-
-        config_file = Path("tests/input/config.json")
-        sbp = SetBerendsenPdamp(config_file)
-        with pytest.raises(ValueError):
-            sbp.replace_in_template(data, toreplace, replacements, outfile)
-        
+      
     def test_edit_templates(self):
         """
         Edit LAMMPS input file templates
