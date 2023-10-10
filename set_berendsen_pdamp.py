@@ -1,8 +1,4 @@
 """
-***Move this and copy necessary files, change remote to github***
-***Create README.md***
-***Create tests***
-
 Automatically set Pdamp for Berendsen barostat by fitting to a target relaxation time, t_target.
 P = P0 * exp(-t/tau) + Pset * (1 - exp(-t/tau))
 P: pressure
@@ -90,6 +86,11 @@ class SetBerendsenPdamp:
         # Name of data file written by LAMMPS after stage 1
         self.data_file = str(Path(self.indir, "stage1.data"))
 
+        # Make sure stage1.data file is in INDIR if stage 1 files are not specified
+        if not Path(self.data_file).exists():
+            str_assert = "Stage 1 input and template files must be specified in JSON input file if stage1.data file is not in INDIR."
+            assert self.stage1_input and self.stage1_template, str_assert
+
         # Name of pressure files written by LAMMPS
         self.pressure_files = [
             str(Path(self.outdir, "pressure1.dat")),
@@ -173,8 +174,10 @@ class SetBerendsenPdamp:
         # Edit template file
         self.edit_templates(pdamp)
 
-        # Run LAMMPS simulations
-        self.simulate()
+        # Run LAMMPS simulation(s)
+        if not Path(self.data_file).exists():
+            self.simulate(1)
+        self.simulate(2)
 
         # Read pressure data from file
         (self.time, self.pressure) = np.loadtxt(self.pressure_files[1], unpack=True)
@@ -210,7 +213,7 @@ class SetBerendsenPdamp:
 
             # read stage 1 template file & make replacements
             with open(self.stage1_template, "r", encoding="utf-8") as fid:
-                template_data = ''.join(fid.readlines())
+                template_data = "".join(fid.readlines())
 
             self.replace_in_template(template_data, replacements, self.stage1_input)
 
@@ -229,7 +232,7 @@ class SetBerendsenPdamp:
 
         # read stage 2 template file & make replacements
         with open(self.stage2_template, "r", encoding="utf-8") as fid:
-            template_data = ''.join(fid.readlines())
+            template_data = "".join(fid.readlines())
 
         self.replace_in_template(template_data, replacements, self.stage2_input)
 
@@ -244,7 +247,7 @@ class SetBerendsenPdamp:
         with open(outfile, "w", encoding="utf-8") as f:
             f.write(data)
 
-    def simulate(self):
+    def simulate(self, stage_number):
         """
         Run LAMMPS simulation(s)
         """
@@ -252,21 +255,20 @@ class SetBerendsenPdamp:
         # Create LammpsLibrary object
         lmp = LammpsLibrary(cores=self.cores)
 
-        # Run stage 1 if data file doesn't exist
-        if not Path(self.data_file).exists():
-            str_assert = "Stage 1 input and template files must be specified in JSON input file if stage1.data file is not in INDIR."
-            assert self.stage1_input and self.stage1_template, str_assert
-
+        # Run simulation
+        if stage_number == 1:
             infile = self.stage1_input
             lmp.file(infile)
-            lmp.command("clear")
 
             str_assert = "Your stage 1 LAMMPS input file should write a stage1.data file in INDIR."
             assert Path(self.data_file).exists(), str_assert
 
-        # Run stage 2 simulation
-        infile = self.stage2_input
-        lmp.file(infile)
+        elif stage_number == 2:
+            infile = self.stage2_input
+            lmp.file(infile)
+
+        else:
+            raise ValueError("stage_number must be 1 or 2.")
 
     def _fit_tau(self):
         """
@@ -388,12 +390,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Automatically set Pdamp for Brendsen barostat by fitting to a target relaxation time, t_target."
     )
-    parser.add_argument(
-        "config_file",
-        metavar="config_file",
-        type=str,
-        help="JSON file with input parameters.",
-    )
+    parser.add_argument("config_file", type=str, help="Path to JSON file with input parameters.")
     args = parser.parse_args()
 
     set_pdamp = SetBerendsenPdamp(args.config_file)
