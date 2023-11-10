@@ -1,17 +1,34 @@
 """
-Automatically set Pdamp for Berendsen barostat by fitting to a target relaxation time, t_target.
-P = P0 * exp(-t/tau) + Pset * (1 - exp(-t/tau))
-P: pressure
-P0: initial pressure (adjustable)
-t: time
-tau: time constant (adjustable)
-t_set = -tau * ln(0.01) (99% of the way to set point pressure)
-Pset: set point pressure
-Pdamp is basically linearly related to t_target
+Automatically set Pdamp for Berendsen barostat by fitting to a target relaxation time, `t_target`.
+`P = P0 * exp(-t/tau) + Pset * (1 - exp(-t/tau))`
+`P`: pressure
+`P0`: initial pressure (adjustable)
+`t`: time
+`tau`: time constant (adjustable)
+`t_set = -tau * ln(0.01)` (99% of the way to set point pressure)
+`Pset`: set point pressure
+`Pdamp` is basically linearly related to `t_target`
 
-The value of pdamp is chosen so that t_set = t_target. 
-In the absence of noise or any systematic errors in fitting, pdamp is linearly related to 
-t_target, so only a few short simulations are required.
+The value of `Pdamp` is chosen so that `t_set = t_target`. 
+In the absence of noise or any systematic errors in fitting, `Pdamp` is linearly related to 
+`t_target`, so only a few short simulations are required.
+
+The class `SetBerendsenPdamp` is used to optimize the value of `Pdamp` for the Berendsen barostat. The class takes a JSON configuration file as input.
+
+1. Initialize the class with the input parameters from the JSON file.
+2. Optimize the value of `Pdamp` by minimizing the difference between the target relaxation time and the predicted relaxation time. Each of the following steps is repeated for each step of the optimization until the difference between the target and fit relaxation times is below a specified tolerance:
+    1. Edit LAMMPS input template files to replace placeholders with the appropriate values of `Pdamp` and other parameters.
+    2. Run LAMMPS simulations using the edited input files.
+    3. Read the pressure data from the simulations and fit it to obtain the relaxation time.
+    4. Compare the fitted relaxation time to the target relaxation time and adjust the value of `Pdamp` accordingly.
+3. Plot the fit to the pressure data.
+
+The value of `Pdamp` is stored in the `pdamp` attribute of the class. The fit parameters, including the relaxation time, are saved to a file. A plot of the fit to the pressure data is also saved as an image file.
+
+Example Usage:
+config_file = "input.json"
+set_pdamp = SetBerendsenPdamp(config_file)
+set_pdamp()
 """
 
 import argparse
@@ -27,12 +44,62 @@ from pylammpsmpi import LammpsLibrary
 
 class SetBerendsenPdamp:
     """
-    Set Pdamp for Berendsen barostat by fitting to a target relaxation time, tau.
+    Set Pdamp for Berendsen barostat by fitting to a target relaxation time, t_target.
+
+    Attributes:
+    -----------
+    cores : int
+        Number of cores to use for LAMMPS simulations
+    pdamp_initial : float
+        Initial guess for Pdamp
+    temperature : float
+        Temperature
+    seed : int
+        Random seed
+    pset : list
+        Set point pressures in LAMMPS
+    sim_time_stage2 : float
+        Simulation time for stage 2
+    t_target : float
+        Target relaxation time
+    dt_tol : float
+        Tolerance for dt = |t_target - t_set|
+    indir : str
+        Input directory
+    potential_file : str
+        Name of potential file to include in LAMMPS input
+    stage1_template : str
+        LAMMPS input file name (stage 1) template
+    stage1_input : str
+        LAMMPS input file name (stage 1)
+    stage2_template : str
+        LAMMPS input file name (stage 2) template
+    stage2_input : str
+        LAMMPS input file name (stage 2)
+    outdir : str
+        Output directory name
+    data_file : str
+        Name of data file written by LAMMPS after stage 1
+    pressure_files : list
+        Name of pressure files written by LAMMPS
+    time : float
+        Time data read from LAMMPS pressure_files. Initialized to 0.
+    pressure : float
+        Pressure data read from LAMMPS pressure_files. Initialized to 0.
+    pdamp : float
+        tset and pdamp data from fits. Initialized to None.
+    fit : lmfit object
+        Output from lmfit. Initialized to None.
     """
 
     def __init__(self, config_file):
         """
-        Initialize from config_file.
+        Initialize the SetBerendsenPdamp object from a JSON configuration file.
+        
+        Args:
+        -----------
+        config_file : str
+            Name of the JSON configuration file.
         """
 
         with open(config_file, "r", encoding="utf-8") as fid:
@@ -111,17 +178,16 @@ class SetBerendsenPdamp:
 
     def __call__(self):
         """
-        Minimize difference between target and predicted tau by varying Pdamp.
-        Plot final fit to pressure data.
+        Minimize the difference between target and predicted relaxation time by varying Pdamp.
+        Plot the final fit to pressure data.
         """
-
         self.optimize_pdamp()
         self._plot_fit()
 
     def optimize_pdamp(self):
         """
-        Find pdamp that gives tset close to target value (dt close to 0).
-        tset is nearly linearly related to pdamp, so no need to use scipy.optimize.minimize which would likely require more function evaluations (simulations).
+        Find pdamp that gives tset close to the target value (dt close to 0).
+        tset is nearly linearly related to pdamp, so there is no need to use scipy.optimize.minimize which would likely require more function evaluations (simulations).
         Stop when dt is less than self.dt_tol.
         """
 
@@ -168,7 +234,17 @@ class SetBerendsenPdamp:
 
     def compute_dt(self, pdamp):
         """
-        Compute difference between target and fit t_set.
+        Edit the LAMMPS template files, run the LAMMPS simulation(s), read the pressure data, and fit the data to get the difference between the target and fitted values of the relaxation time, dt.
+
+        Args:
+        -----------
+        pdamp : float
+            The value of pdamp to use in the LAMMPS simulation(s).
+
+        Returns:
+        -----------
+        dt : float
+            The computed difference between the target and fitted values of the relaxation time.
         """
 
         # Edit template file
@@ -192,6 +268,11 @@ class SetBerendsenPdamp:
         """
         Replace [LOG_FILE], [TSTART], [SEED], [PDAMP], [PSET], [POTENTIAL_FILE], [PRESSURE_FILE],
         [SIM_TIME], & [DATA_FILE] in LAMMPS template files and write to new input files.
+
+        Args:
+        -----------
+        pdamp : float
+            Value of Pdamp to use in LAMMPS input files.
         """
 
         if isinstance(pdamp, Iterable) and len(pdamp) > 0:
@@ -238,9 +319,17 @@ class SetBerendsenPdamp:
 
     def replace_in_template(self, data, replacements, outfile):
         """
-        Replace replacements keys strings in data with replacements values strings and write to outfile.
-        """
+        Replace keys in data with values from replacements and write to outfile.
 
+        Args:
+        -----------
+        data : str
+            The string to perform replacements on.
+        replacements : dict
+            The keys are strings to replace in data with values from replacements.
+        outfile : str
+            Name of LAMMPS file to write to after replacements are made.
+        """
         for to_rep, rep in replacements.items():
             data = data.replace(to_rep, rep)
 
@@ -248,37 +337,59 @@ class SetBerendsenPdamp:
             f.write(data)
 
     def simulate(self, stage_number):
-        """
-        Run LAMMPS simulation(s)
-        """
+            """
+            Run LAMMPS simulation(s)
 
-        # Create LammpsLibrary object
-        lmp = LammpsLibrary(cores=self.cores)
+            Args:
+            -----------
+            stage_number: int 
+                The stage number of the simulation to run. Must be 1 or 2.
 
-        # Run simulation
-        if stage_number == 1:
-            infile = self.stage1_input
-            lmp.file(infile)
+            Raises:
+            -----------
+            ValueError
+                If stage_number is not 1 or 2.
+            """
 
-            str_assert = "Your stage 1 LAMMPS input file should write a stage1.data file in INDIR."
-            assert Path(self.data_file).exists(), str_assert
+            # Create LammpsLibrary object
+            lmp = LammpsLibrary(cores=self.cores)
 
-        elif stage_number == 2:
-            infile = self.stage2_input
-            lmp.file(infile)
+            # Run simulation
+            if stage_number == 1:
+                infile = self.stage1_input
+                lmp.file(infile)
 
-        else:
-            raise ValueError("stage_number must be 1 or 2.")
+                str_assert = "Your stage 1 LAMMPS input file should write a stage1.data file in INDIR."
+                assert Path(self.data_file).exists(), str_assert
+
+            elif stage_number == 2:
+                infile = self.stage2_input
+                lmp.file(infile)
+
+            else:
+                raise ValueError("stage_number must be 1 or 2.")
 
     def _fit_tau(self):
         """
         Fit pressure data to get tau and compute dt.
+
+        This function fits the pressure vs. time data to obtain the time constant (tau) which is used to compute the relaxation time (t_set) and the difference between t_set and the target relaxation time (t_target):
+
         P = P0 * exp(-t/tau) + Pset * (1 - exp(-t/tau))
-        P: pressure
-        P0: initial pressure (adjustable in fit)
-        t: time
-        tau: relaxation time (adjustable in fit)
-        Pset: set point pressure
+
+        where:
+        - P: pressure
+        - P0: initial pressure (adjustable in fit)
+        - t: time
+        - tau: time constant (adjustable in fit)
+        - Pset: set point pressure (not adjustable in fit)
+        
+        t_set = -tau * ln(0.01) (99% of the way to set point pressure)
+
+        Returns:
+        -----------
+        dt : float
+            Absolute difference between t_set and its target value, t_target.
         """
 
         params = lmfit.Parameters()
@@ -296,30 +407,53 @@ class SetBerendsenPdamp:
         return dt
 
     def _residual(self, params):
-        """
-        Compute residuals for fit.
-        Pactual - Ppredicted
-        """
+            """
+            Compute residuals for fit of pressure (P) vs. time (t) data to P = P0 * exp(-t/tau) + Pset * (1 - exp(-t/tau))
+            
+            Args:
+            -----------
+            params : lmfit.Parameters
+                lmfit parameters (tau, P0, Pset) for the pressure function.
+            
+            Returns:
+            --------
+            residuals : numpy.ndarray
+                Array of residuals between actual and predicted pressure values.
+            """
+            pressure_predicted = self._pressure_function(params)
+            residuals = self.pressure - pressure_predicted
 
-        pressure_predicted = self._pressure_function(params)
-        residuals = self.pressure - pressure_predicted
-
-        return residuals
+            return residuals
 
     def _pressure_function(self, params):
-        """
-        (P0 * exp(-t/tau) - Pset * (1 - exp(-t/tau)))
-        """
+            """
+            Fitted pressure as a function of time using P = P0 * exp(-t/tau) + Pset * (1 - exp(-t/tau))
 
-        tau = params["tau"].value
-        p0 = params["p0"].value
-        pset = params["pset"].value
+            Args:
+            -----------
+            params : lmfit.Parameters
+                lmfit parameters (tau, P0, Pset) for the pressure function.
 
-        return p0 * np.exp(-self.time / tau) + pset * (1.0 - np.exp(-self.time / tau))
+            Returns:
+            -----------
+            pfit : numpy.ndarray
+                The fitted pressure as a function of time.
+            """
+
+            tau = params["tau"].value
+            p0 = params["p0"].value
+            pset = params["pset"].value
+            
+            pfit = p0 * np.exp(-self.time / tau) + pset * (1.0 - np.exp(-self.time / tau))
+
+            return pfit
 
     def _check_f(self):
         """
         Check ratio of |P0 - Pset| to standard deviation of pressure, f
+
+        This function calculates the ratio of the absolute difference between the initial pressure and the target pressure to the standard deviation of the pressure. If the ratio is less than 2.5, an error is raised, as the value of pdamp may be unreliable. If the ratio is between 4 and 10, a warning is printed, as the value of pdamp may be less accurate.
+        To get more accurate values of pdamp, modify Pset for stage 1 or stage 2 or increase the system size (reduces standard deviation) to increase the ratio above 10.
         """
 
         ind = self.time > self.t_target
@@ -349,41 +483,40 @@ class SetBerendsenPdamp:
             )
 
     def _plot_fit(self):
-        """
-        Save parameters to file. Plot fit to pressure data.
-        """
+            """
+            Saves temperature, Pdamp, t_set, tau, P0, & Pset to a file and plots the fit to the pressure data.
+            """
+            tau = self.fit.params["tau"].value
+            t_set = -tau * np.log(0.01)
+            p0 = self.fit.params["p0"].value
 
-        tau = self.fit.params["tau"].value
-        tset = -tau * np.log(0.01)
-        p0 = self.fit.params["p0"].value
+            output = [self.temperature, self.pdamp[-1, 1], t_set, tau, p0, self.pset[1]]
+            output = np.array(output, dtype=float).reshape(1, -1)
+            header = " ".join(["T", "pdamp", "t_set", "tau", "P0", "Pset"])
+            outfile = Path(self.outdir, "fit.dat")
+            np.savetxt(outfile, output, header=header)
 
-        output = [self.temperature, self.pdamp[-1, 1], tset, tau, p0, self.pset[1]]
-        output = np.array(output, dtype=float).reshape(1, -1)
-        header = " ".join(["T", "pdamp", "tset", "tau", "P0", "Pset"])
-        outfile = Path(self.outdir, "fit.dat")
-        np.savetxt(outfile, output, header=header)
-
-        plt.plot(self.time, self.pressure, label="data")
-        plt.plot(self.time, self._pressure_function(self.fit.params), "--", label="fit")
-        plt.xlabel("time")
-        plt.ylabel("pressure")
-        plt.legend()
-        plt.title(
-            "T = "
-            + str(self.temperature)
-            + ", Pset = "
-            + str(self.pset[1])
-            + ", pdamp = "
-            + str(round(self.pdamp[-1, 1]))
-            + ", tset = "
-            + str(round(tset, 2))
-            + ", tau = "
-            + str(round(tau, 2))
-            + ", P0 = "
-            + str(round(p0))
-        )
-        plt.savefig(Path(self.outdir, "fit.png"))
-        plt.close()
+            plt.plot(self.time, self.pressure, label="data")
+            plt.plot(self.time, self._pressure_function(self.fit.params), "--", label="fit")
+            plt.xlabel("time")
+            plt.ylabel("pressure")
+            plt.legend()
+            plt.title(
+                "T = "
+                + str(self.temperature)
+                + ", Pset = "
+                + str(self.pset[1])
+                + ", pdamp = "
+                + str(round(self.pdamp[-1, 1]))
+                + ", tset = "
+                + str(round(tset, 2))
+                + ", tau = "
+                + str(round(tau, 2))
+                + ", P0 = "
+                + str(round(p0))
+            )
+            plt.savefig(Path(self.outdir, "fit.png"))
+            plt.close()
 
 
 if __name__ == "__main__":
