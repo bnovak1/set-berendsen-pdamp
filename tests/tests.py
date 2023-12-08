@@ -52,6 +52,23 @@ with open(CONFIG_FILE, "w", encoding="utf-8") as jf:
 def sbp():
     return SetBerendsenPdamp(CONFIG_FILE)
 
+def test_init(sbp):
+    assert sbp.cores == 4
+    assert sbp.pdamp_initial == 30000
+    assert sbp.temperature == 1650
+    assert sbp.seed == 8607844
+    assert sbp.pset == [30000, 0]
+    assert sbp.sim_time_stage2 == 3
+    assert sbp.t_target == 1.0
+    assert sbp.dt_tol == 0.001
+    assert sbp.indir == "tests/input"
+    assert sbp.potential_file == str(Path("tests/input", "potential.lmp"))
+    assert sbp.stage1_template == str(Path("tests/input", "stage1_template.lmp"))
+    assert sbp.stage1_input == str(Path("tests/input", "stage1.lmp"))
+    assert sbp.stage2_template == str(Path("tests/input", "stage2_template.lmp"))
+    assert sbp.stage2_input == str(Path("tests/input", "stage2.lmp"))
+    assert sbp.outdir == "tests/output"
+
 def test_single_string_replacement(sbp):
     """
     Replaces all instances of a single string in data with a replacement string and writes to outfile.
