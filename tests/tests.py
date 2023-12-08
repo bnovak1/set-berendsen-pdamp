@@ -52,7 +52,7 @@ with open(CONFIG_FILE, "w", encoding="utf-8") as jf:
 def sbp():
     return SetBerendsenPdamp(CONFIG_FILE)
 
-def test_init(sbp):
+def test_init_valid_config(sbp):
     assert sbp.cores == 4
     assert sbp.pdamp_initial == 30000
     assert sbp.temperature == 1650
@@ -68,6 +68,10 @@ def test_init(sbp):
     assert sbp.stage2_template == str(Path("tests/input", "stage2_template.lmp"))
     assert sbp.stage2_input == str(Path("tests/input", "stage2.lmp"))
     assert sbp.outdir == "tests/output"
+    
+def test_init_invalid_config():
+    with pytest.raises(FileNotFoundError):
+        obj = SetBerendsenPdamp("invalid_config.json")
 
 def test_single_string_replacement(sbp):
     """
