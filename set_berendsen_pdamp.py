@@ -191,7 +191,7 @@ class SetBerendsenPdamp:
         Stop when dt is less than self.dt_tol.
         """
 
-        # Compute dt for self.pdamp_initial, but halve self.pdamp_initial until
+        # Compute dt for self.pdamp_initial, but halves self.pdamp_initial until
         # self.sim_time_stage2 > dt + self.t_target (t_set is less than simulation time)
         # It improves convergence to start with a reasonable value of pdamp.
         dt = self.compute_dt(self.pdamp_initial)
@@ -360,14 +360,15 @@ class SetBerendsenPdamp:
                 lmp.file(infile)
 
                 str_assert = "Your stage 1 LAMMPS input file should write a stage1.data file in INDIR."
-                assert Path(self.data_file).exists(), str_assert
+                if not Path(self.data_file).exists():
+                    raise FileNotFoundError(str_assert)
 
             elif stage_number == 2:
                 infile = self.stage2_input
                 lmp.file(infile)
 
             else:
-                raise ValueError("stage_number must be 1 or 2.")
+                raise ValueError("Stage_number must be 1 or 2.")
 
     def _fit_tau(self):
         """
@@ -509,7 +510,7 @@ class SetBerendsenPdamp:
                 + ", pdamp = "
                 + str(round(self.pdamp[-1, 1]))
                 + ", tset = "
-                + str(round(tset, 2))
+                + str(round(t_set, 2))
                 + ", tau = "
                 + str(round(tau, 2))
                 + ", P0 = "
