@@ -83,6 +83,12 @@ def test_init_missing_keys():
         obj = SetBerendsenPdamp("incomplete_config.json")
     Path("incomplete_config.json").unlink()
 
+@patch.object(SetBerendsenPdamp, 'optimize_pdamp')
+@patch.object(SetBerendsenPdamp, '_plot_fit')
+def test_call(mock_plot_fit, mock_optimize_pdamp, sbp):
+    sbp.__call__()
+    mock_optimize_pdamp.assert_called_once()
+    mock_plot_fit.assert_called_once()
 
 def test_single_string_replacement(sbp):
     """Replaces all instances of a single string in data with a replacement string and writes to outfile."""
