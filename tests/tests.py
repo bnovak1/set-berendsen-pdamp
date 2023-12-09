@@ -79,9 +79,31 @@ def test_init_missing_keys():
     incomplete_config.pop("CORES")
     with open("incomplete_config.json", "w", encoding="utf-8") as jf:
         json.dump(incomplete_config, jf)
+    
+    # Test that the SetBerendsenPdamp object raises a KeyError
     with pytest.raises(KeyError):
         obj = SetBerendsenPdamp("incomplete_config.json")
     Path("incomplete_config.json").unlink()
+    
+def test_init_no_stage1_keys():
+    """STAGE1 keys must be specified if stage1.data file does not exist"""
+   
+   # Rename stage1.data
+    Path("tests/input/stage1.data").rename("tests/input/stage1.data.bak")
+    
+    # Remove stage1 keys from the config
+    no_stage1_config = CONFIG.copy()
+    no_stage1_config["LAMMPS_INPUT"].pop("STAGE1")
+    with open("no_stage1_config.json", "w", encoding="utf-8") as jf:
+        json.dump(no_stage1_config, jf)
+    
+    # Test that the SetBerendsenPdamp object raises an AttributeError
+    with pytest.raises(AttributeError):
+        obj = SetBerendsenPdamp("no_stage1_config.json")
+    Path("no_stage1_config.json").unlink()
+        
+    # Rename stage1.data.bak back to stage1.data
+    Path("tests/input/stage1.data.bak").rename("tests/input/stage1.data")
 
 @patch.object(SetBerendsenPdamp, 'optimize_pdamp')
 @patch.object(SetBerendsenPdamp, '_plot_fit')

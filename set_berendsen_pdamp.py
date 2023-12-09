@@ -95,7 +95,7 @@ class SetBerendsenPdamp:
     def __init__(self, config_file):
         """
         Initialize the SetBerendsenPdamp object from a JSON configuration file.
-        
+
         Args:
         -----------
         config_file : str
@@ -155,8 +155,10 @@ class SetBerendsenPdamp:
 
         # Make sure stage1.data file is in INDIR if stage 1 files are not specified
         if not Path(self.data_file).exists():
-            str_assert = "Stage 1 input and template files must be specified in JSON input file if stage1.data file is not in INDIR."
-            assert self.stage1_input and self.stage1_template, str_assert
+            if not hasattr(self, "stage1_template") or not hasattr(self, "stage1_input"):
+                raise AttributeError(
+                    "Stage 1 input and template files must be specified in JSON input file if stage1.data file is not in INDIR."
+                )
 
         # Name of pressure files written by LAMMPS
         self.pressure_files = [
@@ -337,38 +339,38 @@ class SetBerendsenPdamp:
             f.write(data)
 
     def simulate(self, stage_number):
-            """
-            Run LAMMPS simulation(s)
+        """
+        Run LAMMPS simulation(s)
 
-            Args:
-            -----------
-            stage_number: int 
-                The stage number of the simulation to run. Must be 1 or 2.
+        Args:
+        -----------
+        stage_number: int
+            The stage number of the simulation to run. Must be 1 or 2.
 
-            Raises:
-            -----------
-            ValueError
-                If stage_number is not 1 or 2.
-            """
+        Raises:
+        -----------
+        ValueError
+            If stage_number is not 1 or 2.
+        """
 
-            # Create LammpsLibrary object
-            lmp = LammpsLibrary(cores=self.cores)
+        # Create LammpsLibrary object
+        lmp = LammpsLibrary(cores=self.cores)
 
-            # Run simulation
-            if stage_number == 1:
-                infile = self.stage1_input
-                lmp.file(infile)
+        # Run simulation
+        if stage_number == 1:
+            infile = self.stage1_input
+            lmp.file(infile)
 
-                str_assert = "Your stage 1 LAMMPS input file should write a stage1.data file in INDIR."
-                if not Path(self.data_file).exists():
-                    raise FileNotFoundError(str_assert)
+            str_assert = "Your stage 1 LAMMPS input file should write a stage1.data file in INDIR."
+            if not Path(self.data_file).exists():
+                raise FileNotFoundError(str_assert)
 
-            elif stage_number == 2:
-                infile = self.stage2_input
-                lmp.file(infile)
+        elif stage_number == 2:
+            infile = self.stage2_input
+            lmp.file(infile)
 
-            else:
-                raise ValueError("Stage_number must be 1 or 2.")
+        else:
+            raise ValueError("Stage_number must be 1 or 2.")
 
     def _fit_tau(self):
         """
@@ -384,7 +386,7 @@ class SetBerendsenPdamp:
         - t: time
         - tau: time constant (adjustable in fit)
         - Pset: set point pressure (not adjustable in fit)
-        
+
         t_set = -tau * ln(0.01) (99% of the way to set point pressure)
 
         Returns:
@@ -408,46 +410,46 @@ class SetBerendsenPdamp:
         return dt
 
     def _residual(self, params):
-            """
-            Compute residuals for fit of pressure (P) vs. time (t) data to P = P0 * exp(-t/tau) + Pset * (1 - exp(-t/tau))
-            
-            Args:
-            -----------
-            params : lmfit.Parameters
-                lmfit parameters (tau, P0, Pset) for the pressure function.
-            
-            Returns:
-            --------
-            residuals : numpy.ndarray
-                Array of residuals between actual and predicted pressure values.
-            """
-            pressure_predicted = self._pressure_function(params)
-            residuals = self.pressure - pressure_predicted
+        """
+        Compute residuals for fit of pressure (P) vs. time (t) data to P = P0 * exp(-t/tau) + Pset * (1 - exp(-t/tau))
 
-            return residuals
+        Args:
+        -----------
+        params : lmfit.Parameters
+            lmfit parameters (tau, P0, Pset) for the pressure function.
+
+        Returns:
+        --------
+        residuals : numpy.ndarray
+            Array of residuals between actual and predicted pressure values.
+        """
+        pressure_predicted = self._pressure_function(params)
+        residuals = self.pressure - pressure_predicted
+
+        return residuals
 
     def _pressure_function(self, params):
-            """
-            Fitted pressure as a function of time using P = P0 * exp(-t/tau) + Pset * (1 - exp(-t/tau))
+        """
+        Fitted pressure as a function of time using P = P0 * exp(-t/tau) + Pset * (1 - exp(-t/tau))
 
-            Args:
-            -----------
-            params : lmfit.Parameters
-                lmfit parameters (tau, P0, Pset) for the pressure function.
+        Args:
+        -----------
+        params : lmfit.Parameters
+            lmfit parameters (tau, P0, Pset) for the pressure function.
 
-            Returns:
-            -----------
-            pfit : numpy.ndarray
-                The fitted pressure as a function of time.
-            """
+        Returns:
+        -----------
+        pfit : numpy.ndarray
+            The fitted pressure as a function of time.
+        """
 
-            tau = params["tau"].value
-            p0 = params["p0"].value
-            pset = params["pset"].value
-            
-            pfit = p0 * np.exp(-self.time / tau) + pset * (1.0 - np.exp(-self.time / tau))
+        tau = params["tau"].value
+        p0 = params["p0"].value
+        pset = params["pset"].value
 
-            return pfit
+        pfit = p0 * np.exp(-self.time / tau) + pset * (1.0 - np.exp(-self.time / tau))
+
+        return pfit
 
     def _check_f(self):
         """
@@ -484,40 +486,40 @@ class SetBerendsenPdamp:
             )
 
     def _plot_fit(self):
-            """
-            Saves temperature, Pdamp, t_set, tau, P0, & Pset to a file and plots the fit to the pressure data.
-            """
-            tau = self.fit.params["tau"].value
-            t_set = -tau * np.log(0.01)
-            p0 = self.fit.params["p0"].value
+        """
+        Saves temperature, Pdamp, t_set, tau, P0, & Pset to a file and plots the fit to the pressure data.
+        """
+        tau = self.fit.params["tau"].value
+        t_set = -tau * np.log(0.01)
+        p0 = self.fit.params["p0"].value
 
-            output = [self.temperature, self.pdamp[-1, 1], t_set, tau, p0, self.pset[1]]
-            output = np.array(output, dtype=float).reshape(1, -1)
-            header = " ".join(["T", "pdamp", "t_set", "tau", "P0", "Pset"])
-            outfile = Path(self.outdir, "fit.dat")
-            np.savetxt(outfile, output, header=header)
+        output = [self.temperature, self.pdamp[-1, 1], t_set, tau, p0, self.pset[1]]
+        output = np.array(output, dtype=float).reshape(1, -1)
+        header = " ".join(["T", "pdamp", "t_set", "tau", "P0", "Pset"])
+        outfile = Path(self.outdir, "fit.dat")
+        np.savetxt(outfile, output, header=header)
 
-            plt.plot(self.time, self.pressure, label="data")
-            plt.plot(self.time, self._pressure_function(self.fit.params), "--", label="fit")
-            plt.xlabel("time")
-            plt.ylabel("pressure")
-            plt.legend()
-            plt.title(
-                "T = "
-                + str(self.temperature)
-                + ", Pset = "
-                + str(self.pset[1])
-                + ", pdamp = "
-                + str(round(self.pdamp[-1, 1]))
-                + ", tset = "
-                + str(round(t_set, 2))
-                + ", tau = "
-                + str(round(tau, 2))
-                + ", P0 = "
-                + str(round(p0))
-            )
-            plt.savefig(Path(self.outdir, "fit.png"))
-            plt.close()
+        plt.plot(self.time, self.pressure, label="data")
+        plt.plot(self.time, self._pressure_function(self.fit.params), "--", label="fit")
+        plt.xlabel("time")
+        plt.ylabel("pressure")
+        plt.legend()
+        plt.title(
+            "T = "
+            + str(self.temperature)
+            + ", Pset = "
+            + str(self.pset[1])
+            + ", pdamp = "
+            + str(round(self.pdamp[-1, 1]))
+            + ", tset = "
+            + str(round(t_set, 2))
+            + ", tau = "
+            + str(round(tau, 2))
+            + ", P0 = "
+            + str(round(p0))
+        )
+        plt.savefig(Path(self.outdir, "fit.png"))
+        plt.close()
 
 
 if __name__ == "__main__":
