@@ -157,7 +157,7 @@ class SetBerendsenPdamp:
         if not Path(self.data_file).exists():
             if not hasattr(self, "stage1_template") or not hasattr(self, "stage1_input"):
                 raise AttributeError(
-                    "Stage 1 input and template files must be specified in JSON input file if stage1.data file is not in INDIR."
+                    "Stage 1 input and template files must be specified in the JSON input file if the stage1.data file is not in INDIR."
                 )
 
         # Name of pressure files written by LAMMPS
@@ -277,8 +277,11 @@ class SetBerendsenPdamp:
             Value of Pdamp to use in LAMMPS input files.
         """
 
-        if isinstance(pdamp, Iterable) and len(pdamp) > 0:
-            pdamp = pdamp[0]
+        if isinstance(pdamp, Iterable):
+            if len(pdamp) > 0:
+                pdamp = pdamp[0]
+            else:
+                raise ValueError("pdamp must be a scalar or an iterable with at least one value.")
 
         # If stage 1 input and template files are specified, make replacements
         if self.stage1_template and self.stage1_input:

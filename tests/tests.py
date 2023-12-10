@@ -52,7 +52,7 @@ def sbp():
 
 def test_init_valid_config(sbp):
     """
-    Test that a SetBerendsenPdamp object is initialized correctly.
+    Test that a `SetBerendsenPdamp` object is initialized correctly.
     """
 
     assert sbp.cores == 4
@@ -74,7 +74,7 @@ def test_init_valid_config(sbp):
 
 def test_init_invalid_config():
     """
-    Test that a SetBerendsenPdamp object raises a FileNotFoundError if the config file does not exist.
+    Test that a `SetBerendsenPdamp` object raises a FileNotFoundError if the config file does not exist.
     """
 
     with pytest.raises(FileNotFoundError):
@@ -83,7 +83,7 @@ def test_init_invalid_config():
 
 def test_init_missing_keys():
     """
-    Test that a SetBerendsenPdamp object raises a KeyError if the config file is missing a key.
+    Test that a `SetBerendsenPdamp` object raises a KeyError if the config file is missing a key.
     """
 
     # Remove a key from the config
@@ -91,37 +91,38 @@ def test_init_missing_keys():
     incomplete_config.pop("CORES")
     with open("incomplete_config.json", "w", encoding="utf-8") as jf:
         json.dump(incomplete_config, jf)
-    
+
     # Test that the SetBerendsenPdamp object raises a KeyError
     with pytest.raises(KeyError):
         obj = SetBerendsenPdamp("incomplete_config.json")
     Path("incomplete_config.json").unlink()
-    
+
+
 def test_init_no_stage1_keys():
     """
-    Test case to verify the behavior of a SetBerendsenPdamp object initialization
-    when the 'STAGE1' key is missing from the config.
+    Test case to verify the behavior of a `SetBerendsenPdamp` object initialization when the 'STAGE1' key is missing from the config file and the stage1.data file does not exist.
     """
-   
+
     # Rename stage1.data
     Path("tests/input/stage1.data").rename("tests/input/stage1.data.bak")
-    
+
     # Remove stage1 keys from the config
     no_stage1_config = CONFIG.copy()
     no_stage1_config["LAMMPS_INPUT"].pop("STAGE1")
     with open("no_stage1_config.json", "w", encoding="utf-8") as jf:
         json.dump(no_stage1_config, jf)
-    
+
     # Test that the SetBerendsenPdamp object raises an AttributeError
     with pytest.raises(AttributeError):
         obj = SetBerendsenPdamp("no_stage1_config.json")
     Path("no_stage1_config.json").unlink()
-        
+
     # Rename stage1.data.bak back to stage1.data
     Path("tests/input/stage1.data.bak").rename("tests/input/stage1.data")
 
-@patch.object(SetBerendsenPdamp, 'optimize_pdamp')
-@patch.object(SetBerendsenPdamp, '_plot_fit')
+
+@patch.object(SetBerendsenPdamp, "optimize_pdamp")
+@patch.object(SetBerendsenPdamp, "_plot_fit")
 def test_call(mock_plot_fit, mock_optimize_pdamp, sbp):
     """
     Test the __call__ method of the sbp object.
@@ -130,13 +131,14 @@ def test_call(mock_plot_fit, mock_optimize_pdamp, sbp):
     mock_optimize_pdamp.assert_called_once()
     mock_plot_fit.assert_called_once()
 
+
 def test_single_string_replacement(sbp):
     """
     Test case for the `replace_in_template` function which replaces all instances of a single string in data with a replacement string.
     """
 
     data = "Hello [NAME]\nWelcome to [CITY]!"
-    
+
     replacements = {"[NAME]": "John"}
     outfile = Path("output.txt")
     sbp.replace_in_template(data, replacements, outfile)
@@ -150,12 +152,12 @@ def test_single_string_replacement(sbp):
 
 def test_multiple_strings_replacement(sbp):
     """
-     Test case for the `replace_in_template` function which replaces all instances of multiple strings in data with corresponding replacement strings.
+    Test case for the `replace_in_template` function which replaces all instances of multiple strings in data with corresponding replacement strings.
     """
 
     data = "Hello [NAME]\nWelcome to [CITY]!"
     replacements = {"[NAME]": "John", "[CITY]": "New York"}
-    
+
     outfile = Path("output.txt")
     sbp.replace_in_template(data, replacements, outfile)
 
@@ -164,6 +166,7 @@ def test_multiple_strings_replacement(sbp):
     outfile.unlink()
 
     assert result == "Hello John\nWelcome to New York!"
+
 
 def test_replace_in_template_empty_data(sbp):
     """
@@ -174,11 +177,12 @@ def test_replace_in_template_empty_data(sbp):
 
     outfile = Path("output.txt")
     sbp.replace_in_template(data, replacements, outfile)
-    
+
     with open(outfile, "r", encoding="utf-8") as f:
         assert f.read() == ""
     outfile.unlink()
-    
+
+
 def test_replace_in_template_empty_replacements(sbp):
     """
     Test case to verify the behavior of the `replace_in_template` function when given an empty replacements dictionary.
@@ -193,6 +197,7 @@ def test_replace_in_template_empty_replacements(sbp):
         assert f.read() == "Hello, [NAME]!"
     outfile.unlink()
 
+
 def test_replace_in_template_non_dict_replacements(sbp):
     """
     Test case for the `replace_in_template` function when non-dictionary replacements are provided.
@@ -204,9 +209,48 @@ def test_replace_in_template_non_dict_replacements(sbp):
     with pytest.raises(AttributeError):
         sbp.replace_in_template(data, replacements, outfile)
 
+
+def test_replace_in_template_non_string_data(sbp):
+    """
+    Test case for the `replace_in_template` function when non-string data is provided.
+    """
+    data = 1
+    replacements = {"[NAME]": "World"}
+
+    outfile = Path("output.txt")
+    with pytest.raises(AttributeError):
+        sbp.replace_in_template(data, replacements, outfile)
+
+
+@patch.object(SetBerendsenPdamp, "replace_in_template")
+def test_edit_templates_valid(mock_replace_in_template, sbp):
+    """
+    Test case for the `edit_templates` function which checks that it calls the `replace_in_template` function twice.
+    """
+    pdamp = 0.5
+    sbp.edit_templates(pdamp)
+    assert mock_replace_in_template.call_count == 2
+
+
+@patch.object(SetBerendsenPdamp, "replace_in_template")
+def test_edit_templates_iterable(mock_replace_in_template, sbp):
+    """
+    Test case for the `edit_templates` function which checks that it calls the `replace_in_template` function twice when pdamp is an iterable.
+    """
+    pdamp = [0.5, 0.6]
+    sbp.edit_templates(pdamp)
+    assert mock_replace_in_template.call_count == 2
+
+
+def test_edit_templates_empty_iterable(sbp):
+    pdamp = []
+    with pytest.raises(ValueError):
+        sbp.edit_templates(pdamp)
+
+
 def test_edit_templates(sbp):
     """
-    Test for the `edit_templates` function which edits LAMMPS input file templates
+    Test for the `edit_templates` function which compares the edited LAMMPS input files to the expected LAMMPS input files.
     """
 
     # Call the edit_templates method
