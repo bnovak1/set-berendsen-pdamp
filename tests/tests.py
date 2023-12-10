@@ -1,14 +1,17 @@
-"""Tests generated with assistance from CodiumAI and GitHub Copilot"""
+"""
+Tests for the SetBerendsenPdamp class
+"""
 
 import json
 from pathlib import Path
 import sys
-from unittest.mock import Mock, patch
 
 import lmfit
 import numpy as np
-import pytest
 from scipy.stats import ks_2samp
+
+import pytest
+from unittest.mock import Mock, patch
 
 from set_berendsen_pdamp import SetBerendsenPdamp
 
@@ -41,11 +44,16 @@ with open(CONFIG_FILE, "w", encoding="utf-8") as jf:
 
 @pytest.fixture
 def sbp():
+    """
+    Returns a SetBerendsenPdamp object initialized with CONFIG_FILE.
+    """
     return SetBerendsenPdamp(CONFIG_FILE)
 
 
 def test_init_valid_config(sbp):
-    """Test that the SetBerendsenPdamp object is initialized correctly."""
+    """
+    Test that a SetBerendsenPdamp object is initialized correctly.
+    """
 
     assert sbp.cores == 4
     assert sbp.pdamp_initial == 30000
@@ -65,14 +73,18 @@ def test_init_valid_config(sbp):
 
 
 def test_init_invalid_config():
-    """Test that the SetBerendsenPdamp object raises a FileNotFoundError if the config file does not exist."""
+    """
+    Test that a SetBerendsenPdamp object raises a FileNotFoundError if the config file does not exist.
+    """
 
     with pytest.raises(FileNotFoundError):
         obj = SetBerendsenPdamp("invalid_config.json")
 
 
 def test_init_missing_keys():
-    """Test that the SetBerendsenPdamp object raises a KeyError if the config file is missing a key."""
+    """
+    Test that a SetBerendsenPdamp object raises a KeyError if the config file is missing a key.
+    """
 
     # Remove a key from the config
     incomplete_config = CONFIG.copy()
@@ -86,9 +98,12 @@ def test_init_missing_keys():
     Path("incomplete_config.json").unlink()
     
 def test_init_no_stage1_keys():
-    """STAGE1 keys must be specified if stage1.data file does not exist"""
+    """
+    Test case to verify the behavior of a SetBerendsenPdamp object initialization
+    when the 'STAGE1' key is missing from the config.
+    """
    
-   # Rename stage1.data
+    # Rename stage1.data
     Path("tests/input/stage1.data").rename("tests/input/stage1.data.bak")
     
     # Remove stage1 keys from the config
@@ -108,17 +123,22 @@ def test_init_no_stage1_keys():
 @patch.object(SetBerendsenPdamp, 'optimize_pdamp')
 @patch.object(SetBerendsenPdamp, '_plot_fit')
 def test_call(mock_plot_fit, mock_optimize_pdamp, sbp):
+    """
+    Test the __call__ method of the sbp object.
+    """
     sbp.__call__()
     mock_optimize_pdamp.assert_called_once()
     mock_plot_fit.assert_called_once()
 
 def test_single_string_replacement(sbp):
-    """Replaces all instances of a single string in data with a replacement string and writes to outfile."""
+    """
+    Test case for the `replace_in_template` function which replaces all instances of a single string in data with a replacement string.
+    """
 
     data = "Hello [NAME]\nWelcome to [CITY]!"
+    
     replacements = {"[NAME]": "John"}
     outfile = Path("output.txt")
-
     sbp.replace_in_template(data, replacements, outfile)
 
     with open(outfile, "r", encoding="utf-8") as f:
@@ -129,12 +149,14 @@ def test_single_string_replacement(sbp):
 
 
 def test_multiple_strings_replacement(sbp):
-    """Replaces all instances of multiple strings in data with corresponding replacement strings and writes to outfile."""
+    """
+     Test case for the `replace_in_template` function which replaces all instances of multiple strings in data with corresponding replacement strings.
+    """
 
     data = "Hello [NAME]\nWelcome to [CITY]!"
     replacements = {"[NAME]": "John", "[CITY]": "New York"}
+    
     outfile = Path("output.txt")
-
     sbp.replace_in_template(data, replacements, outfile)
 
     with open(outfile, "r", encoding="utf-8") as f:
@@ -143,9 +165,49 @@ def test_multiple_strings_replacement(sbp):
 
     assert result == "Hello John\nWelcome to New York!"
 
+def test_replace_in_template_empty_data(sbp):
+    """
+    Test case for the `replace_in_template` function when the data is empty.
+    """
+    data = ""
+    replacements = {"[NAME]": "World"}
+
+    outfile = Path("output.txt")
+    sbp.replace_in_template(data, replacements, outfile)
+    
+    with open(outfile, "r", encoding="utf-8") as f:
+        assert f.read() == ""
+    outfile.unlink()
+    
+def test_replace_in_template_empty_replacements(sbp):
+    """
+    Test case to verify the behavior of the `replace_in_template` function when given an empty replacements dictionary.
+    """
+    data = "Hello, [NAME]!"
+    replacements = {}
+
+    outfile = Path("output.txt")
+    sbp.replace_in_template(data, replacements, outfile)
+
+    with open(outfile, "r", encoding="utf-8") as f:
+        assert f.read() == "Hello, [NAME]!"
+    outfile.unlink()
+
+def test_replace_in_template_non_dict_replacements(sbp):
+    """
+    Test case for the `replace_in_template` function when non-dictionary replacements are provided.
+    """
+    data = "Hello, [NAME]!"
+    replacements = "[NAME]"
+
+    outfile = Path("output.txt")
+    with pytest.raises(AttributeError):
+        sbp.replace_in_template(data, replacements, outfile)
 
 def test_edit_templates(sbp):
-    """Edit LAMMPS input file templates"""
+    """
+    Test for the `edit_templates` function which edits LAMMPS input file templates
+    """
 
     # Call the edit_templates method
     sbp.edit_templates(sbp.pdamp_initial)
@@ -173,7 +235,9 @@ def test_edit_templates(sbp):
 
 @patch("set_berendsen_pdamp.LammpsLibrary")
 def test_simulate_valid_stage_number(mock_lammps, sbp):
-    """Test that the simulate method works with a valid stage number (1 or 2)."""
+    """
+    Test that the `simulate` function works with a valid stage number (1 or 2).
+    """
 
     sbp.stage1_input = "stage1.in"
     sbp.stage2_input = "stage2.in"
@@ -191,14 +255,18 @@ def test_simulate_valid_stage_number(mock_lammps, sbp):
 
 
 def test_simulate_invalid_stage_number(sbp):
-    """The simulate method raises a ValueError if the stage number is not 1 or 2."""
+    """
+    Test that the `simulate` function raises a ValueError if the stage number is not 1 or 2.
+    """
 
     with pytest.raises(ValueError):
         sbp.simulate(3)
 
 
 def test_simulate_no_data_file(sbp):
-    """The simulate method raises a FileNotFoundError if stage1.data does not exist after stage 1."""
+    """
+    Test that the `simulate` function raises a FileNotFoundError if stage1.data does not exist after stage 1.
+    """
 
     sbp.stage1_input = "stage1.in"
     sbp.data_file = "stage1.data"
@@ -210,7 +278,9 @@ def test_simulate_no_data_file(sbp):
 
 
 def test_fit_tau(sbp):
-    """Test that fitting to pressure data works correctly. Pressure data for testing is in tests/pressure2.dat."""
+    """
+    Test that fitting to pressure data works correctly using the `_fit_tau` function. Pressure data for testing is in tests/pressure2.dat.
+    """
 
     # Read in pressure data
     pressure_file = Path("tests/pressure2.dat")
@@ -231,7 +301,9 @@ def test_fit_tau(sbp):
 
 
 def test_optimization():
-    """Since different versions of LAMMPS or a different number of cores might lead to different pdamp values, check that produced pdamp values are from the same distribution as the pre-computed pdamp values in pdamp_samples.json using the Kolmogorov-Smirnov test. Only run stage 2 simulations starting from stage1.data."""
+    """
+    Test the actual optimization of pdamp. Since different versions of LAMMPS or a different number of cores might lead to different pdamp values, check that produced pdamp values are from the same distribution as the pre-computed pdamp values in pdamp_samples.json using the Kolmogorov-Smirnov test. Only run stage 2 simulations starting from stage1.data.
+    """
 
     # Random seeds to use for testing
     seeds = [
