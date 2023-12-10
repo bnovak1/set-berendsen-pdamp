@@ -17,11 +17,12 @@ def multi_sims(seeds, base_dir="tests", infile="input/config.json"):
     infile = Path(base_dir, infile)
     fit_file = Path(base_dir, "output/fit.dat")
 
+    with open(infile, "r", encoding="utf-8") as jf:
+        config = json.load(jf)
+
     data_output = pd.DataFrame([], columns=["seed", "pdamp", "t_set", "tau", "P0"])
 
     for seed in seeds:
-        with open(infile, "r", encoding="utf-8") as jf:
-            config = json.load(jf)
 
         config["SEED"] = int(seed)
 
