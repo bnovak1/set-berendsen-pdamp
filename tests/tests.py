@@ -362,10 +362,16 @@ def test_optimization():
         1743382,
         4568358,
     ]
+    
+    # Write config file
+    config_file = Path("tests/optimization_config.json")
+    with open(config_file, "w", encoding="utf-8") as jf:
+        json.dump(CONFIG, jf, indent=4)
 
     # Run simulations
-    _, data_output = multi_sims(seeds)
+    _, data_output = multi_sims(seeds, infile="optimization_config.json")
     pdamp_test = np.array(data_output["pdamp"])
+    config_file.unlink()
 
     # Read in pre-computed pdamp values
     with open(Path("tests/pdamp_samples.json"), "r", encoding="utf-8") as jf:
