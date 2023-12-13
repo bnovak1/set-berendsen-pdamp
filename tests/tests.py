@@ -320,10 +320,39 @@ def test_simulate_no_data_file(sbp):
     with pytest.raises(FileNotFoundError):
         sbp.simulate(1)
 
+def test_fit_tau_valid(sbp):
+    sbp.pressure = np.array([1.0, 0.9, 0.8, 0.7, 0.6])
+    sbp.pset = [1.0, 1.0]
+    dt = sbp._fit_tau()
+    assert isinstance(dt, float)
+
+def test_fit_tau_empty_pressure(sbp):
+    sbp.pressure = []
+    sbp.pset = [1.0, 1.0]
+    with pytest.raises(IndexError):
+        dt = sbp._fit_tau()
+
+def test_fit_tau_empty_pset(sbp):
+    sbp.pressure = np.array([1.0, 0.9, 0.8, 0.7, 0.6])
+    sbp.pset = []
+    with pytest.raises(IndexError):
+        dt = sbp._fit_tau()
+
+def test_fit_tau_non_iterable_pressure(sbp):
+    sbp.pressure = "invalid"
+    sbp.pset = [1.0, 1.0]
+    with pytest.raises(TypeError):
+        dt = sbp._fit_tau()
+
+def test_fit_tau_non_iterable_pset(sbp):
+    sbp.pressure = np.array([1.0, 0.9, 0.8, 0.7, 0.6])
+    sbp.pset = "invalid"
+    with pytest.raises(TypeError):
+        dt = sbp._fit_tau()
 
 def test_fit_tau(sbp):
     """
-    Test that fitting to pressure data works correctly using the `_fit_tau` function. Pressure data for testing is in tests/pressure2.dat.
+    Test that fitting to real pressure data produce the correct parameters using the `_fit_tau` function. Pressure data for testing is in tests/pressure2.dat.
     """
 
     # Read in pressure data
