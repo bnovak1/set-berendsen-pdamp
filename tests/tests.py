@@ -11,7 +11,7 @@ import numpy as np
 from scipy.stats import ks_2samp
 
 import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, MagicMock, patch
 
 from set_berendsen_pdamp import SetBerendsenPdamp
 
@@ -320,11 +320,13 @@ def test_simulate_no_data_file(sbp):
     with pytest.raises(FileNotFoundError):
         sbp.simulate(1)
 
+
 def test_fit_tau_valid(sbp):
     sbp.pressure = np.array([1.0, 0.9, 0.8, 0.7, 0.6])
     sbp.pset = [1.0, 1.0]
     dt = sbp._fit_tau()
     assert isinstance(dt, float)
+
 
 def test_fit_tau_empty_pressure(sbp):
     sbp.pressure = []
@@ -332,11 +334,13 @@ def test_fit_tau_empty_pressure(sbp):
     with pytest.raises(IndexError):
         dt = sbp._fit_tau()
 
+
 def test_fit_tau_empty_pset(sbp):
     sbp.pressure = np.array([1.0, 0.9, 0.8, 0.7, 0.6])
     sbp.pset = []
     with pytest.raises(IndexError):
         dt = sbp._fit_tau()
+
 
 def test_fit_tau_non_iterable_pressure(sbp):
     sbp.pressure = "invalid"
@@ -344,11 +348,13 @@ def test_fit_tau_non_iterable_pressure(sbp):
     with pytest.raises(TypeError):
         dt = sbp._fit_tau()
 
+
 def test_fit_tau_non_iterable_pset(sbp):
     sbp.pressure = np.array([1.0, 0.9, 0.8, 0.7, 0.6])
     sbp.pset = "invalid"
     with pytest.raises(TypeError):
         dt = sbp._fit_tau()
+
 
 def test_fit_tau(sbp):
     """
@@ -373,6 +379,55 @@ def test_fit_tau(sbp):
     assert np.isclose(dt, 0.00019307992818373698)
 
 
+def test_compute_dt(sbp):
+    """
+    Test the compute_dt method
+    """
+
+    # Mock the methods called in compute_dt
+    sbp.edit_templates = MagicMock()
+    sbp.simulate = MagicMock()
+    sbp._fit_tau = MagicMock(return_value=0.5)
+
+    # Mock the np.loadtxt function to return fixed values
+    np.loadtxt = MagicMock(return_value=(np.array([0, 1, 2]), np.array([0, 1, 2])))
+
+    # Run the method with a test value for pdamp
+    result = sbp.compute_dt(1.0)
+
+    # Check that the result is as expected
+    assert result == 0.5
+
+    # Check that the mocked methods were called with the expected arguments
+    sbp.edit_templates.assert_called_once_with(1.0)
+    sbp.simulate.assert_called()
+    sbp._fit_tau.assert_called_once()
+
+    # Check that np.loadtxt was called with the expected arguments
+    np.loadtxt.assert_called_once_with(sbp.pressure_files[1], unpack=True)
+
+
+def test_residual(sbp):
+    """
+    Test the _residual method
+    """
+    
+    # Mock the _pressure_function method to return a constant value
+    sbp._pressure_function = lambda params: np.array([1.0, 2.0, 3.0])
+
+    # Set the pressure attribute to a known value
+    sbp.pressure = np.array([2.0, 3.0, 4.0])
+
+    # Create a Parameters object
+    params = lmfit.Parameters()
+
+    # Call the _residual method
+    residuals = sbp._residual(params)
+
+    # Assert that the residuals are as expected
+    assert np.array_equal(residuals, np.array([1.0, 1.0, 1.0]))
+
+
 def test_optimization():
     """
     Test the actual optimization of pdamp. Since different versions of LAMMPS or a different number of cores might lead to different pdamp values, check that produced pdamp values are from the same distribution as the pre-computed pdamp values in pdamp_samples.json using the Kolmogorov-Smirnov test. Only run stage 2 simulations starting from stage1.data.
@@ -391,7 +446,7 @@ def test_optimization():
         1743382,
         4568358,
     ]
-    
+
     # Write config file
     config_file = Path("tests/optimization_config.json")
     with open(config_file, "w", encoding="utf-8") as jf:
