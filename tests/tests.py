@@ -411,7 +411,7 @@ def test_residual(sbp):
     """
     Test the _residual method
     """
-    
+
     # Mock the _pressure_function method to return a constant value
     sbp._pressure_function = lambda params: np.array([1.0, 2.0, 3.0])
 
@@ -426,6 +426,28 @@ def test_residual(sbp):
 
     # Assert that the residuals are as expected
     assert np.array_equal(residuals, np.array([1.0, 1.0, 1.0]))
+
+
+def test_pressure_function(sbp):
+    """
+    Test the _pressure_function method
+    """
+
+    # Set the time attribute to a known value
+    sbp.time = np.array([0.0, 1.0, 2.0])
+
+    # Create a lmfit.Parameters object with known values
+    params = lmfit.Parameters()
+    params.add("tau", value=1.0)
+    params.add("p0", value=2.0)
+    params.add("pset", value=3.0)
+
+    # Call the _pressure_function method
+    pfit = sbp._pressure_function(params)
+
+    # Assert that the fitted pressure is as expected
+    expected_pfit = np.array([2.0, 2.6321205588285577, 2.8646647167633876])
+    assert np.allclose(pfit, expected_pfit)
 
 
 def test_optimization():
