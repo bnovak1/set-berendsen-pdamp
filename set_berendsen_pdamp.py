@@ -35,6 +35,7 @@ import argparse
 from collections.abc import Iterable
 import json
 from pathlib import Path
+import warnings
 
 import lmfit
 import matplotlib.pyplot as plt
@@ -470,23 +471,19 @@ class SetBerendsenPdamp:
         f = dp / ps
 
         # If f is less than 2.5, raise error
-        str_assert = (
-            "Ratio of |P0 - Pset| to pressure fluctuations, f = "
-            + str(f)
-            + " Ratio of |P0 - Pset| to fluctuations in pressure is too small (< 2.5). The value of pdamp may be unreliable. Modify Pset for stage 1 or stage 2 to increase |P0 - Pset|. f should be > about 10 to get accurate values of pdamp and values < 2.5 could give unreasonable values and convergence will likely be very slow."
+        str_error = (
+            f"The ratio of |P0 - Pset| to pressure fluctuations is f = {f}. The ratio of |P0 - Pset| to fluctuations in pressure is too small (< 2.5). The value of pdamp may be unreliable. Modify Pset for stage 1 or stage 2 to increase |P0 - Pset|. f should be > about 10 to get accurate values of pdamp and values < 2.5 could give unreasonable values and convergence will likely be very slow."
         )
-        assert f >= 2.5, str_assert
+        if f < 2.5:
+            raise ValueError(str_error)
 
         # If f is between 4 and 10, raise warning
+        str_warn = (
+            f"The ratio of |P0 - Pset| to pressure fluctuations is f = {f}. For f between 4 and 10, reasonable but perhaps less accurate values of pdamp will be found. To get more accurate values of pdamp, modify Pset for stage 1 or stage 2 to increase |P0 - Pset| above 10."
+        )
         if f < 10 and f >= 2.5:
-            print("\nRatio of |P0 - Pset| to pressure fluctuations, f =", f)
-            print("WARNING: |P0 - Pset| is not large enough compared to fluctuations in pressure. ")
-            print(
-                "For f between 4 and 10, reasonable but perhaps less accurate values of pdamp will be found."
-            )
-            print(
-                "To get more accurate values of pdamp, modify Pset for stage 1 or stage 2 to increase |P0 - Pset| above 10.\n"
-            )
+            warnings.warn(UserWarning(str_warn))
+        
 
     def _plot_fit(self):
         """

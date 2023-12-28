@@ -449,6 +449,109 @@ def test_pressure_function(sbp):
     expected_pfit = np.array([2.0, 2.6321205588285577, 2.8646647167633876])
     assert np.allclose(pfit, expected_pfit)
 
+def test_check_f_15(sbp):
+    """
+    Test the _check_f method when the f is about 15.
+    """
+    
+    # Generate some fake pressure data with the desired f value
+    p0 = 16.0
+    sbp.pset = [1.0, 1.0]
+    tau = 1.0
+    sbp.t_target = -tau * np.log(0.01)
+    sbp.time = np.arange(0, 100.1, 0.1)
+    sbp.pressure = p0 * np.exp(-sbp.time / tau) + sbp.pset[1] * (1.0 - np.exp(-sbp.time / tau))
+    p_rand = np.random.normal(0, 1.0, len(sbp.pressure))
+    sbp.pressure += p_rand
+
+    # Create a Parameters object
+    params = lmfit.Parameters()
+    params.add('p0', value=p0)
+    sbp.fit = lambda: None
+    sbp.fit.params = params
+
+    # Call the _check_f method
+    sbp._check_f()
+
+    # Assert that no exception was raised
+    assert True
+    
+def test_check_f_15(sbp):
+    """
+    Test the _check_f method when the f is about 15.
+    """
+    
+    # Generate some fake pressure data with the desired f value
+    p0 = 16.0
+    sbp.pset = [1.0, 1.0]
+    tau = 1.0
+    sbp.t_target = -tau * np.log(0.01)
+    sbp.time = np.arange(0, 100.1, 0.1)
+    sbp.pressure = p0 * np.exp(-sbp.time / tau) + sbp.pset[1] * (1.0 - np.exp(-sbp.time / tau))
+    p_rand = np.random.normal(0, 1.0, len(sbp.pressure))
+    sbp.pressure += p_rand
+
+    # Create a Parameters object
+    params = lmfit.Parameters()
+    params.add('p0', value=p0)
+    sbp.fit = lambda: None
+    sbp.fit.params = params
+
+    # Call the _check_f method
+    sbp._check_f()
+
+    # Assert that no exception was raised
+    assert True
+
+def test_check_f_2(sbp):
+    """
+    Test the _check_f method when the f is about 2. Should raise a ValueError.
+    """
+    
+    # Generate some fake pressure data with the desired f value
+    p0 = 3.0
+    sbp.pset = [1.0, 1.0]
+    tau = 1.0
+    sbp.t_target = -tau * np.log(0.01)
+    sbp.time = np.arange(0, 100.1, 0.1)
+    sbp.pressure = p0 * np.exp(-sbp.time / tau) + sbp.pset[1] * (1.0 - np.exp(-sbp.time / tau))
+    p_rand = np.random.normal(0, 1.0, len(sbp.pressure))
+    sbp.pressure += p_rand
+
+    # Create a Parameters object
+    params = lmfit.Parameters()
+    params.add('p0', value=p0)
+    sbp.fit = lambda: None
+    sbp.fit.params = params
+
+    # Call the _check_f method
+    with pytest.raises(ValueError):
+        sbp._check_f()
+
+def test_check_f_7(sbp):
+    """
+    Test the _check_f method when the f is about 2. Should raise a UserWarning.
+    """
+    
+    # Generate some fake pressure data with the desired f value
+    p0 = 8.0
+    sbp.pset = [1.0, 1.0]
+    tau = 1.0
+    sbp.t_target = -tau * np.log(0.01)
+    sbp.time = np.arange(0, 100.1, 0.1)
+    sbp.pressure = p0 * np.exp(-sbp.time / tau) + sbp.pset[1] * (1.0 - np.exp(-sbp.time / tau))
+    p_rand = np.random.normal(0, 1.0, len(sbp.pressure))
+    sbp.pressure += p_rand
+
+    # Create a Parameters object
+    params = lmfit.Parameters()
+    params.add('p0', value=p0)
+    sbp.fit = lambda: None
+    sbp.fit.params = params
+
+    # Call the _check_f method
+    with pytest.warns(UserWarning):
+        sbp._check_f()
 
 def test_optimization():
     """
