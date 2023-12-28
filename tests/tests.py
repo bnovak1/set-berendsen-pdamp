@@ -475,7 +475,8 @@ def test_check_f_15(sbp):
 
     # Assert that no exception was raised
     assert True
-    
+
+@pytest.mark.filterwarnings("error")
 def test_check_f_15(sbp):
     """
     Test the _check_f method when the f is about 15.
@@ -530,7 +531,7 @@ def test_check_f_2(sbp):
 
 def test_check_f_7(sbp):
     """
-    Test the _check_f method when the f is about 2. Should raise a UserWarning.
+    Test the _check_f method when the f is about 2. Should output a UserWarning.
     """
     
     # Generate some fake pressure data with the desired f value
