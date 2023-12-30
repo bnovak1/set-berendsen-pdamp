@@ -7,6 +7,7 @@ from pathlib import Path
 import sys
 
 import lmfit
+import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import ks_2samp
 
@@ -456,21 +457,27 @@ def test_check_f(sbp):
     Test the _check_f method when the f is about 15.
     """
 
+    # Parameters for the fale pressure data
+    sbp.pset = [1.0, 1.0]
+    tau = 1.0
+
+    # Target relaxation time
+    sbp.t_target = -tau * np.log(0.01)
+
+    # Time data
+    sbp.time = np.arange(0, 100.1, 0.1)
+
     def generate_data(f_target):
         """
-        Generate some fake pressure data with the desired f value
+        Generate some fake pressure data with the desired f value.
+        Create a lmfit.Parameters object for "p0".
         """
 
         p0 = f_target + 1.0
-        sbp.pset = [1.0, 1.0]
-        tau = 1.0
-        sbp.t_target = -tau * np.log(0.01)
-        sbp.time = np.arange(0, 100.1, 0.1)
         sbp.pressure = p0 * np.exp(-sbp.time / tau) + sbp.pset[1] * (1.0 - np.exp(-sbp.time / tau))
         p_rand = np.random.normal(0, 1.0, len(sbp.pressure))
         sbp.pressure += p_rand
 
-        # Create a Parameters object
         params = lmfit.Parameters()
         params.add("p0", value=p0)
         sbp.fit = lambda: None
@@ -490,6 +497,45 @@ def test_check_f(sbp):
     generate_data(2.0)
     with pytest.raises(ValueError):
         sbp._check_f()
+
+
+def test_plot_fit(sbp):
+    """
+    Test the _plot_fit method
+    """
+
+    # Set the time, pressure, pdamp, temperature, and pset attributes
+    sbp.time = np.array([0.0, 1.0, 2.0, 3.0, 4.0])
+    sbp.pressure = np.array([2.0, 3.0, 4.0, 5.0, 6.0])
+    sbp.pdamp = np.array([[0.0, 1.0], [1.0, 2.0], [2.0, 3.0], [3.0, 4.0], [4.0, 5.0]])
+    sbp.temperature = 300.0
+    sbp.pset = [1.0, 5.0]
+
+    # Set the outdir attribute
+    sbp.outdir = "."
+
+    # Create a lmfit.Parameters object
+    params = lmfit.Parameters()
+    params.add("tau", value=1.0)
+    params.add("p0", value=2.0)
+    sbp.fit = lambda: None
+    sbp.fit.params = params
+
+    # Mock the _pressure_function method to return a constant array
+    sbp._pressure_function = lambda params: np.array([1.0, 2.0, 3.0, 4.0, 5.0])
+
+    # Call the _plot_fit method
+    with patch.object(plt, "plot", return_value=None), \
+         patch.object(plt, "xlabel", return_value=None), \
+         patch.object(plt, "ylabel", return_value=None), \
+         patch.object(plt, "legend", return_value=None), \
+         patch.object(plt, "title", return_value=None), \
+         patch.object(plt, "savefig", return_value=None), \
+         patch.object(plt, "close", return_value=None):
+        sbp._plot_fit()
+
+    # Assert that no exception was raised
+    assert True
 
 
 def test_optimization():
