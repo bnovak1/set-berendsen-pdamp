@@ -38,7 +38,6 @@ from pathlib import Path
 import warnings
 
 import lmfit
-import matplotlib.pyplot as plt
 import numpy as np
 from pylammpsmpi import LammpsLibrary
 
@@ -182,10 +181,10 @@ class SetBerendsenPdamp:
     def __call__(self):
         """
         Minimize the difference between target and predicted relaxation time by varying Pdamp.
-        Plot the final fit to pressure data.
+        Save the final fit to pressure data.
         """
         self.optimize_pdamp()
-        self._plot_fit()
+        self._save_fit()
 
     def optimize_pdamp(self):
         """
@@ -485,42 +484,27 @@ class SetBerendsenPdamp:
             warnings.warn(UserWarning(str_warn))
         
 
-    def _plot_fit(self):
+    def _save_fit(self):
         """
-        Saves temperature, Pdamp, t_set, tau, P0, & Pset to a file and plots the fit to the pressure data.
+        Saves temperature, Pdamp, t_set, tau, P0, & Pset; time, pressure, and the fit to the pressure data.
         """
         tau = self.fit.params["tau"].value
         t_set = -tau * np.log(0.01)
         p0 = self.fit.params["p0"].value
 
-        output = [self.temperature, self.pdamp[-1, 1], t_set, tau, p0, self.pset[1]]
-        output = np.array(output, dtype=float).reshape(1, -1)
-        header = " ".join(["T", "pdamp", "t_set", "tau", "P0", "Pset"])
-        outfile = Path(self.outdir, "fit.dat")
-        np.savetxt(outfile, output, header=header)
-
-        plt.plot(self.time, self.pressure, label="data")
-        plt.plot(self.time, self._pressure_function(self.fit.params), "--", label="fit")
-        plt.xlabel("time")
-        plt.ylabel("pressure")
-        plt.legend()
-        plt.title(
-            "T = "
-            + str(self.temperature)
-            + ", Pset = "
-            + str(self.pset[1])
-            + ", pdamp = "
-            + str(round(self.pdamp[-1, 1]))
-            + ", tset = "
-            + str(round(t_set, 2))
-            + ", tau = "
-            + str(round(tau, 2))
-            + ", P0 = "
-            + str(round(p0))
-        )
-        plt.savefig(Path(self.outdir, "fit.png"))
-        plt.close()
-
+        output = {}
+        output["temperature"] = self.temperature
+        output["pdamp"] = self.pdamp[-1, 1]
+        output["t_set"] = t_set
+        output["tau"] = tau
+        output["P0"] = p0
+        output["Pset"] = self.pset[1]
+        output["time"] = self.time
+        output["pressure"] = self.pressure
+        output["fit"] = self._pressure_function(self.fit.params)
+        
+        with open(Path(self.outdir, "fit.json"), "w", encoding="utf-8") as jf:
+            json.dump(output, jf, indent=4)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
