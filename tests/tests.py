@@ -523,12 +523,12 @@ def test_save_fit(sbp):
     # Create a mock for the SetBerendsenPdamp class
     sbp.fit = MagicMock()
     sbp.fit.params = {"tau": MagicMock(value=1.0), "p0": MagicMock(value=2.0)}
-    sbp._pressure_function = MagicMock(return_value=3.0)
+    sbp._pressure_function = MagicMock(return_value=[3, 4])
     sbp.temperature = 300
     sbp.pdamp = np.array([[0, 4.0]])
     sbp.pset = [0, 5.0]
-    sbp.time = 6.0
-    sbp.pressure = 7.0
+    sbp.time = [0, 1]
+    sbp.pressure = [6, 7]
     sbp.outdir = "."
 
     sbp._save_fit()
@@ -538,54 +538,54 @@ def test_save_fit(sbp):
     with open(outfile, "r", encoding="utf-8") as jf:
         json_data = json.load(jf)
 
-        assert json_data == {
-            "temperature": 300,
-            "pdamp": 4.0,
-            "t_set": -1.0 * np.log(0.01),
-            "tau": 1.0,
-            "P0": 2.0,
-            "Pset": 5.0,
-            "time": 6.0,
-            "pressure": 7.0,
-            "fit": 3.0,
-        }
-        
+    assert json_data == {
+        "temperature": 300,
+        "pdamp": 4.0,
+        "t_set": -1.0 * np.log(0.01),
+        "tau": 1.0,
+        "P0": 2.0,
+        "Pset": 5.0,
+        "time": [0, 1],
+        "pressure": [6, 7],
+        "fit_pressure": [3, 4],
+    }
+
     outfile.unlink()
 
 
-# def test_optimization():
-#     """
-#     Test the actual optimization of pdamp. Since different versions of LAMMPS or a different number of cores might lead to different pdamp values, check that produced pdamp values are from the same distribution as the pre-computed pdamp values in pdamp_samples.json using the Kolmogorov-Smirnov test. Only run stage 2 simulations starting from stage1.data.
-#     """
+def test_optimization():
+    """
+    Test the actual optimization of pdamp. Since different versions of LAMMPS or a different number of cores might lead to different pdamp values, check that produced pdamp values are from the same distribution as the pre-computed pdamp values in pdamp_samples.json using the Kolmogorov-Smirnov test. Only run stage 2 simulations starting from stage1.data.
+    """
 
-#     # Random seeds to use for testing
-#     seeds = [
-#         9229241,
-#         8875157,
-#         9457236,
-#         4391786,
-#         7034636,
-#         4811723,
-#         9098824,
-#         3998610,
-#         1743382,
-#         4568358,
-#     ]
+    # Random seeds to use for testing
+    seeds = [
+        9229241,
+        8875157,
+        9457236,
+        4391786,
+        7034636,
+        4811723,
+        9098824,
+        3998610,
+        1743382,
+        4568358,
+    ]
 
-#     # Write config file
-#     config_file = Path("tests/optimization_config.json")
-#     with open(config_file, "w", encoding="utf-8") as jf:
-#         json.dump(CONFIG, jf, indent=4)
+    # Write config file
+    config_file = Path("tests/optimization_config.json")
+    with open(config_file, "w", encoding="utf-8") as jf:
+        json.dump(CONFIG, jf, indent=4)
 
-#     # Run simulations
-#     _, data_output = multi_sims(seeds, infile="optimization_config.json")
-#     pdamp_test = np.array(data_output["pdamp"])
-#     config_file.unlink()
+    # Run simulations
+    _, data_output = multi_sims(seeds, infile="optimization_config.json")
+    pdamp_test = np.array(data_output["pdamp"])
+    config_file.unlink()
 
-#     # Read in pre-computed pdamp values
-#     with open(Path("tests/pdamp_samples.json"), "r", encoding="utf-8") as jf:
-#         pdamp_samples = np.array(json.load(jf)["data"]["pdamp"])
+    # Read in pre-computed pdamp values
+    with open(Path("tests/pdamp_samples.json"), "r", encoding="utf-8") as jf:
+        pdamp_samples = np.array(json.load(jf)["data"]["pdamp"])
 
-#     # Assert that the pdamp values are from the same distribution
-#     results = ks_2samp(pdamp_test, pdamp_samples)
-#     assert results.pvalue > 0.05
+    # Assert that the pdamp values are from the same distribution
+    results = ks_2samp(pdamp_test, pdamp_samples)
+    assert results.pvalue > 0.05

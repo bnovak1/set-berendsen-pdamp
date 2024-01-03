@@ -499,9 +499,9 @@ class SetBerendsenPdamp:
         output["tau"] = tau
         output["P0"] = p0
         output["Pset"] = self.pset[1]
-        output["time"] = self.time
-        output["pressure"] = self.pressure
-        output["fit"] = self._pressure_function(self.fit.params)
+        output["time"] = list(self.time)
+        output["pressure"] = list(self.pressure)
+        output["fit_pressure"] = list(self._pressure_function(self.fit.params))
         
         with open(Path(self.outdir, "fit.json"), "w", encoding="utf-8") as jf:
             json.dump(output, jf, indent=4)
