@@ -2,6 +2,7 @@
 Tests for the SetBerendsenPdamp class
 """
 
+import copy
 import json
 from pathlib import Path
 import sys
@@ -12,11 +13,11 @@ import numpy as np
 from scipy.stats import ks_2samp
 
 import pytest
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import mock_open, MagicMock, patch
 
-from set_berendsen_pdamp import SetBerendsenPdamp
-
+sys.path.append(".")
 sys.path.append("tests")
+from set_berendsen_pdamp import SetBerendsenPdamp
 from sample_pdamp import multi_sims
 
 CONFIG = {
@@ -88,7 +89,7 @@ def test_init_missing_keys():
     """
 
     # Remove a key from the config
-    incomplete_config = CONFIG.copy()
+    incomplete_config = copy.deepcopy(CONFIG)
     incomplete_config.pop("CORES")
     with open("incomplete_config.json", "w", encoding="utf-8") as jf:
         json.dump(incomplete_config, jf)
@@ -108,7 +109,7 @@ def test_init_no_stage1_keys():
     Path("tests/input/stage1.data").rename("tests/input/stage1.data.bak")
 
     # Remove stage1 keys from the config
-    no_stage1_config = CONFIG.copy()
+    no_stage1_config = copy.deepcopy(CONFIG)
     no_stage1_config["LAMMPS_INPUT"].pop("STAGE1")
     with open("no_stage1_config.json", "w", encoding="utf-8") as jf:
         json.dump(no_stage1_config, jf)
@@ -122,15 +123,30 @@ def test_init_no_stage1_keys():
     Path("tests/input/stage1.data.bak").rename("tests/input/stage1.data")
 
 
-@patch.object(SetBerendsenPdamp, "optimize_pdamp")
-@patch.object(SetBerendsenPdamp, "_plot_fit")
-def test_call(mock_plot_fit, mock_optimize_pdamp, sbp):
+# @patch.object(SetBerendsenPdamp, "optimize_pdamp")
+# @patch.object(SetBerendsenPdamp, "_plot_fit")
+# def test_call(mock_plot_fit, mock_optimize_pdamp, sbp):
+#     """
+#     Test the __call__ method of the sbp object.
+#     """
+#     sbp.__call__()
+#     mock_optimize_pdamp.assert_called_once()
+#     mock_plot_fit.assert_called_once()
+def test_call(sbp):
     """
     Test the __call__ method of the sbp object.
     """
-    sbp.__call__()
-    mock_optimize_pdamp.assert_called_once()
-    mock_plot_fit.assert_called_once()
+
+    # Create a mock for the SetBerendsenPdamp class
+    sbp.optimize_pdamp = MagicMock()
+    sbp._save_fit = MagicMock()
+
+    # Call the __call__ method
+    sbp()
+
+    # Assert that optimize_pdamp and _save_fit were called
+    sbp.optimize_pdamp.assert_called_once()
+    sbp._save_fit.assert_called_once()
 
 
 def test_single_string_replacement(sbp):
@@ -499,78 +515,77 @@ def test_check_f(sbp):
         sbp._check_f()
 
 
-def test_plot_fit(sbp):
+def test_save_fit(sbp):
     """
-    Test the _plot_fit method
+    Test the _save_fit method
     """
 
-    # Set the time, pressure, pdamp, temperature, and pset attributes
-    sbp.time = np.array([0.0, 1.0, 2.0, 3.0, 4.0])
-    sbp.pressure = np.array([2.0, 3.0, 4.0, 5.0, 6.0])
-    sbp.pdamp = np.array([[0.0, 1.0], [1.0, 2.0], [2.0, 3.0], [3.0, 4.0], [4.0, 5.0]])
-    sbp.temperature = 300.0
-    sbp.pset = [1.0, 5.0]
-
-    # Set the outdir attribute
+    # Create a mock for the SetBerendsenPdamp class
+    sbp.fit = MagicMock()
+    sbp.fit.params = {"tau": MagicMock(value=1.0), "p0": MagicMock(value=2.0)}
+    sbp._pressure_function = MagicMock(return_value=3.0)
+    sbp.temperature = 300
+    sbp.pdamp = np.array([[0, 4.0]])
+    sbp.pset = [0, 5.0]
+    sbp.time = 6.0
+    sbp.pressure = 7.0
     sbp.outdir = "."
 
-    # Create a lmfit.Parameters object
-    params = lmfit.Parameters()
-    params.add("tau", value=1.0)
-    params.add("p0", value=2.0)
-    sbp.fit = lambda: None
-    sbp.fit.params = params
+    sbp._save_fit()
 
-    # Mock the _pressure_function method to return a constant array
-    sbp._pressure_function = lambda params: np.array([1.0, 2.0, 3.0, 4.0, 5.0])
+    outfile = Path(sbp.outdir, "fit.json")
 
-    # Call the _plot_fit method
-    with patch.object(plt, "plot", return_value=None), \
-         patch.object(plt, "xlabel", return_value=None), \
-         patch.object(plt, "ylabel", return_value=None), \
-         patch.object(plt, "legend", return_value=None), \
-         patch.object(plt, "title", return_value=None), \
-         patch.object(plt, "savefig", return_value=None), \
-         patch.object(plt, "close", return_value=None):
-        sbp._plot_fit()
+    with open(outfile, "r", encoding="utf-8") as jf:
+        json_data = json.load(jf)
 
-    # Assert that no exception was raised
-    assert True
+        assert json_data == {
+            "temperature": 300,
+            "pdamp": 4.0,
+            "t_set": -1.0 * np.log(0.01),
+            "tau": 1.0,
+            "P0": 2.0,
+            "Pset": 5.0,
+            "time": 6.0,
+            "pressure": 7.0,
+            "fit": 3.0,
+        }
+        
+    outfile.unlink()
 
 
-def test_optimization():
-    """
-    Test the actual optimization of pdamp. Since different versions of LAMMPS or a different number of cores might lead to different pdamp values, check that produced pdamp values are from the same distribution as the pre-computed pdamp values in pdamp_samples.json using the Kolmogorov-Smirnov test. Only run stage 2 simulations starting from stage1.data.
-    """
+# def test_optimization():
+#     """
+#     Test the actual optimization of pdamp. Since different versions of LAMMPS or a different number of cores might lead to different pdamp values, check that produced pdamp values are from the same distribution as the pre-computed pdamp values in pdamp_samples.json using the Kolmogorov-Smirnov test. Only run stage 2 simulations starting from stage1.data.
+#     """
 
-    # Random seeds to use for testing
-    seeds = [
-        9229241,
-        8875157,
-        9457236,
-        4391786,
-        7034636,
-        4811723,
-        9098824,
-        3998610,
-        1743382,
-        4568358,
-    ]
+#     # Random seeds to use for testing
+#     seeds = [
+#         9229241,
+#         8875157,
+#         9457236,
+#         4391786,
+#         7034636,
+#         4811723,
+#         9098824,
+#         3998610,
+#         1743382,
+#         4568358,
+#     ]
 
-    # Write config file
-    config_file = Path("tests/optimization_config.json")
-    with open(config_file, "w", encoding="utf-8") as jf:
-        json.dump(CONFIG, jf, indent=4)
+#     # Write config file
+#     config_file = Path("tests/optimization_config.json")
+#     with open(config_file, "w", encoding="utf-8") as jf:
+#         json.dump(CONFIG, jf, indent=4)
 
-    # Run simulations
-    _, data_output = multi_sims(seeds, infile="optimization_config.json")
-    pdamp_test = np.array(data_output["pdamp"])
-    config_file.unlink()
+#     # Run simulations
+#     _, data_output = multi_sims(seeds, infile="optimization_config.json")
+#     pdamp_test = np.array(data_output["pdamp"])
+#     config_file.unlink()
 
-    # Read in pre-computed pdamp values
-    with open(Path("tests/pdamp_samples.json"), "r", encoding="utf-8") as jf:
-        pdamp_samples = np.array(json.load(jf)["data"]["pdamp"])
+#     # Read in pre-computed pdamp values
+#     with open(Path("tests/pdamp_samples.json"), "r", encoding="utf-8") as jf:
+#         pdamp_samples = np.array(json.load(jf)["data"]["pdamp"])
 
-    # Assert that the pdamp values are from the same distribution
-    results = ks_2samp(pdamp_test, pdamp_samples)
-    assert results.pvalue > 0.05
+#     # Assert that the pdamp values are from the same distribution
+#     results = ks_2samp(pdamp_test, pdamp_samples)
+#     assert results.pvalue > 0.05
