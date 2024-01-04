@@ -8,7 +8,6 @@ from pathlib import Path
 import sys
 
 import lmfit
-import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import ks_2samp
 
@@ -557,7 +556,7 @@ def test_optimization():
     """
     Test the actual optimization of pdamp. Since different versions of LAMMPS or a different number of cores might lead to different pdamp values, check that produced pdamp values are from the same distribution as the pre-computed pdamp values in pdamp_samples.json using the Kolmogorov-Smirnov test. Only run stage 2 simulations starting from stage1.data.
     """
-
+    
     # Random seeds to use for testing
     seeds = [
         9229241,
