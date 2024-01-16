@@ -13,11 +13,9 @@ from scipy.stats import ks_2samp
 
 import pytest
 from unittest.mock import mock_open, MagicMock, patch
+from tests import multi_sims
 
-sys.path.append(".")
-sys.path.append("tests")
 from set_berendsen_pdamp import SetBerendsenPdamp
-from sample_pdamp import multi_sims
 
 CONFIG = {
     "CORES": 4,
