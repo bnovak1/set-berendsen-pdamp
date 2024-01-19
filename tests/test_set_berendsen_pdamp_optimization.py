@@ -8,11 +8,13 @@ Only run stage 2 simulations starting from stage1.data.
 
 import json
 from pathlib import Path
+import sys
 
 import numpy as np
 from scipy.stats import ks_2samp
 
-from tests import multi_sims
+sys.path.append("tests")
+from sample_pdamp import multi_sims
 
 CONFIG = {
     "CORES": 4,
