@@ -5,15 +5,13 @@ Tests for the SetBerendsenPdamp class
 import copy
 import json
 from pathlib import Path
-import sys
 
 import lmfit
 import numpy as np
 from scipy.stats import ks_2samp
 
 import pytest
-from unittest.mock import mock_open, MagicMock, patch
-from tests import multi_sims
+from unittest.mock import MagicMock, patch
 
 from set_berendsen_pdamp import SetBerendsenPdamp
 
@@ -77,7 +75,7 @@ def test_init_invalid_config():
     """
 
     with pytest.raises(FileNotFoundError):
-        obj = SetBerendsenPdamp("invalid_config.json")
+        SetBerendsenPdamp("invalid_config.json")
 
 
 def test_init_missing_keys():
@@ -93,13 +91,14 @@ def test_init_missing_keys():
 
     # Test that the SetBerendsenPdamp object raises a KeyError
     with pytest.raises(KeyError):
-        obj = SetBerendsenPdamp("incomplete_config.json")
+        SetBerendsenPdamp("incomplete_config.json")
     Path("incomplete_config.json").unlink()
 
 
 def test_init_no_stage1_keys():
     """
-    Test case to verify the behavior of a `SetBerendsenPdamp` object initialization when the 'STAGE1' key is missing from the config file and the stage1.data file does not exist.
+    Test case to verify the behavior of a `SetBerendsenPdamp` object initialization when the
+    'STAGE1' key is missing from the config file and the stage1.data file does not exist.
     """
 
     # Rename stage1.data
@@ -113,7 +112,7 @@ def test_init_no_stage1_keys():
 
     # Test that the SetBerendsenPdamp object raises an AttributeError
     with pytest.raises(AttributeError):
-        obj = SetBerendsenPdamp("no_stage1_config.json")
+        SetBerendsenPdamp("no_stage1_config.json")
     Path("no_stage1_config.json").unlink()
 
     # Rename stage1.data.bak back to stage1.data
@@ -148,7 +147,8 @@ def test_call(sbp):
 
 def test_single_string_replacement(sbp):
     """
-    Test case for the `replace_in_template` function which replaces all instances of a single string in data with a replacement string.
+    Test case for the `replace_in_template` function which replaces all instances of a single
+    string in data with a replacement string.
     """
 
     data = "Hello [NAME]\nWelcome to [CITY]!"
@@ -166,7 +166,8 @@ def test_single_string_replacement(sbp):
 
 def test_multiple_strings_replacement(sbp):
     """
-    Test case for the `replace_in_template` function which replaces all instances of multiple strings in data with corresponding replacement strings.
+    Test case for the `replace_in_template` function which replaces all instances of multiple
+    strings in data with corresponding replacement strings.
     """
 
     data = "Hello [NAME]\nWelcome to [CITY]!"
@@ -249,7 +250,8 @@ def test_edit_templates_valid(mock_replace_in_template, sbp):
 @patch.object(SetBerendsenPdamp, "replace_in_template")
 def test_edit_templates_iterable(mock_replace_in_template, sbp):
     """
-    Test case for the `edit_templates` function which checks that it calls the `replace_in_template` function twice when pdamp is an iterable.
+    Test case for the `edit_templates` function which checks that it calls the
+    `replace_in_template` function twice when pdamp is an iterable.
     """
     pdamp = [0.5, 0.6]
     sbp.edit_templates(pdamp)
@@ -346,33 +348,34 @@ def test_fit_tau_empty_pressure(sbp):
     sbp.pressure = []
     sbp.pset = [1.0, 1.0]
     with pytest.raises(IndexError):
-        dt = sbp._fit_tau()
+        sbp._fit_tau()
 
 
 def test_fit_tau_empty_pset(sbp):
     sbp.pressure = np.array([1.0, 0.9, 0.8, 0.7, 0.6])
     sbp.pset = []
     with pytest.raises(IndexError):
-        dt = sbp._fit_tau()
+        sbp._fit_tau()
 
 
 def test_fit_tau_non_iterable_pressure(sbp):
     sbp.pressure = "invalid"
     sbp.pset = [1.0, 1.0]
     with pytest.raises(TypeError):
-        dt = sbp._fit_tau()
+        sbp._fit_tau()
 
 
 def test_fit_tau_non_iterable_pset(sbp):
     sbp.pressure = np.array([1.0, 0.9, 0.8, 0.7, 0.6])
     sbp.pset = "invalid"
     with pytest.raises(TypeError):
-        dt = sbp._fit_tau()
+        sbp._fit_tau()
 
 
 def test_fit_tau(sbp):
     """
-    Test that fitting to real pressure data produce the correct parameters using the `_fit_tau` function. Pressure data for testing is in tests/pressure2.dat.
+    Test that fitting to real pressure data produce the correct parameters using the `_fit_tau` function.
+    Pressure data for testing is in tests/pressure2.dat.
     """
 
     # Read in pressure data
@@ -552,9 +555,15 @@ def test_save_fit(sbp):
 
 def test_optimization():
     """
-    Test the actual optimization of pdamp. Since different versions of LAMMPS or a different number of cores might lead to different pdamp values, check that produced pdamp values are from the same distribution as the pre-computed pdamp values in pdamp_samples.json using the Kolmogorov-Smirnov test. Only run stage 2 simulations starting from stage1.data.
+    Test the actual optimization of pdamp.
+    Since different versions of LAMMPS or a different number of cores might lead to different pdamp values,
+    check that produced pdamp values are from the same distribution as the pre-computed pdamp
+    values in pdamp_samples.json using the Kolmogorov-Smirnov test.
+    Only run stage 2 simulations starting from stage1.data.
     """
-    
+
+    from tests import multi_sims
+
     # Random seeds to use for testing
     seeds = [
         9229241,

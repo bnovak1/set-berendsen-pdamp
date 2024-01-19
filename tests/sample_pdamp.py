@@ -54,7 +54,9 @@ if __name__ == "__main__":
     config, data_output = multi_sims(np.unique(np.random.randint(1e6, 1e7, size=1000)))
 
     output = {
-        "description": "Values of pdamp obtained with different random seeds. The config key is the input file used for the optimization except the seed is changed. The data key contains the seed, pdamp, t_set, tau, and P0 values obtained from the optimizations.",
+        "description": "Values of pdamp obtained with different random seeds. " +
+        "The config key is the input file used for the optimization except the seed is changed. " +
+        "The data key contains the seed, pdamp, t_set, tau, and P0 values obtained from the optimizations.",
         "config": config,
         "data": data_output.to_dict(orient="list"),
     }

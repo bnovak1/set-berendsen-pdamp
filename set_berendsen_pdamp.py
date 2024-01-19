@@ -9,21 +9,26 @@ Automatically set Pdamp for Berendsen barostat by fitting to a target relaxation
 `Pset`: set point pressure
 `Pdamp` is basically linearly related to `t_target`
 
-The value of `Pdamp` is chosen so that `t_set = t_target`. 
-In the absence of noise or any systematic errors in fitting, `Pdamp` is linearly related to 
-`t_target`, so only a few short simulations are required.
+The value of `Pdamp` is chosen so that `t_set = t_target`.
+In the absence of noise or any systematic errors in fitting, `Pdamp` is linearly related to `t_target`,
+so only a few short simulations are required.
 
-The class `SetBerendsenPdamp` is used to optimize the value of `Pdamp` for the Berendsen barostat. The class takes a JSON configuration file as input.
+The class `SetBerendsenPdamp` is used to optimize the value of `Pdamp` for the Berendsen barostat.
+The class takes a JSON configuration file as input.
 
 1. Initialize the class with the input parameters from the JSON file.
-2. Optimize the value of `Pdamp` by minimizing the difference between the target relaxation time and the predicted relaxation time. Each of the following steps is repeated for each step of the optimization until the difference between the target and fit relaxation times is below a specified tolerance:
+2. Optimize the value of `Pdamp` by minimizing the difference between target relaxation time & predicted relaxation time.
+Each of the following steps is repeated for each step of the optimization until the difference between the target and
+fit relaxation times is below a specified tolerance:
     1. Edit LAMMPS input template files to replace placeholders with the appropriate values of `Pdamp` and other parameters.
     2. Run LAMMPS simulations using the edited input files.
     3. Read the pressure data from the simulations and fit it to obtain the relaxation time.
     4. Compare the fitted relaxation time to the target relaxation time and adjust the value of `Pdamp` accordingly.
 3. Plot the fit to the pressure data.
 
-The value of `Pdamp` is stored in the `pdamp` attribute of the class. The fit parameters, including the relaxation time, are saved to a file. A plot of the fit to the pressure data is also saved as an image file.
+The value of `Pdamp` is stored in the `pdamp` attribute of the class.
+The fit parameters, including the relaxation time, are saved to a file.
+A plot of the fit to the pressure data is also saved as an image file.
 
 Example Usage:
 config_file = "input.json"
@@ -157,7 +162,8 @@ class SetBerendsenPdamp:
         if not Path(self.data_file).exists():
             if not hasattr(self, "stage1_template") or not hasattr(self, "stage1_input"):
                 raise AttributeError(
-                    "Stage 1 input and template files must be specified in the JSON input file if the stage1.data file is not in INDIR."
+                    "Stage 1 input & template files must be specified in the JSON input file "
+                    + "if the stage1.data file is not in INDIR."
                 )
 
         # Name of pressure files written by LAMMPS
@@ -189,7 +195,8 @@ class SetBerendsenPdamp:
     def optimize_pdamp(self):
         """
         Find pdamp that gives tset close to the target value (dt close to 0).
-        tset is nearly linearly related to pdamp, so there is no need to use scipy.optimize.minimize which would likely require more function evaluations (simulations).
+        tset is nearly linearly related to pdamp, so there is no need to use
+        scipy.optimize.minimize which would likely require more function evaluations (simulations).
         Stop when dt is less than self.dt_tol.
         """
 
@@ -236,7 +243,8 @@ class SetBerendsenPdamp:
 
     def compute_dt(self, pdamp):
         """
-        Edit the LAMMPS template files, run the LAMMPS simulation(s), read the pressure data, and fit the data to get the difference between the target and fitted values of the relaxation time, dt.
+        Edit the LAMMPS template files, run the LAMMPS simulation(s), read the pressure data,
+        and fit the data to get the difference between the target and fitted values of the relaxation time, dt.
 
         Args:
         -----------
@@ -379,7 +387,8 @@ class SetBerendsenPdamp:
         """
         Fit pressure data to get tau and compute dt.
 
-        This function fits the pressure vs. time data to obtain the time constant (tau) which is used to compute the relaxation time (t_set) and the difference between t_set and the target relaxation time (t_target):
+        This function fits the pressure vs. time data to obtain the time constant (tau) which is used to compute
+        the relaxation time (t_set) and the difference between t_set and the target relaxation time (t_target):
 
         P = P0 * exp(-t/tau) + Pset * (1 - exp(-t/tau))
 
@@ -458,8 +467,12 @@ class SetBerendsenPdamp:
         """
         Check ratio of |P0 - Pset| to standard deviation of pressure, f
 
-        This function calculates the ratio of the absolute difference between the initial pressure and the target pressure to the standard deviation of the pressure. If the ratio is less than 2.5, an error is raised, as the value of pdamp may be unreliable. If the ratio is between 4 and 10, a warning is printed, as the value of pdamp may be less accurate.
-        To get more accurate values of pdamp, modify Pset for stage 1 or stage 2 or increase the system size (reduces standard deviation) to increase the ratio above 10.
+        This function calculates the ratio of the absolute difference between the initial pressure
+        and the target pressure to the standard deviation of the pressure.
+        If the ratio is less than 2.5, an error is raised, as the value of pdamp may be unreliable.
+        If the ratio is between 4 and 10, a warning is printed, as the value of pdamp may be less accurate.
+        To get more accurate values of pdamp, modify Pset for stage 1 or stage 2
+        or increase the system size (reduces standard deviation) to increase the ratio above 10.
         """
 
         ind = self.time > self.t_target
@@ -471,18 +484,23 @@ class SetBerendsenPdamp:
 
         # If f is less than 2.5, raise error
         str_error = (
-            f"The ratio of |P0 - Pset| to pressure fluctuations is f = {f}. The ratio of |P0 - Pset| to fluctuations in pressure is too small (< 2.5). The value of pdamp may be unreliable. Modify Pset for stage 1 or stage 2 to increase |P0 - Pset|. f should be > about 10 to get accurate values of pdamp and values < 2.5 could give unreasonable values and convergence will likely be very slow."
+            f"The ratio of |P0 - Pset| to pressure fluctuations is f = {f}. "
+            + "The ratio of |P0 - Pset| to fluctuations in pressure is too small (< 2.5). "
+            + "The value of pdamp may be unreliable. Modify Pset for stage 1 or stage 2 to increase |P0 - Pset|. "
+            + "f should be > about 10 to get accurate values of pdamp "
+            + "and values < 2.5 could give unreasonable values and convergence will likely be very slow."
         )
         if f < 2.5:
             raise ValueError(str_error)
 
         # If f is between 4 and 10, raise warning
         str_warn = (
-            f"The ratio of |P0 - Pset| to pressure fluctuations is f = {f}. For f between 4 and 10, reasonable but perhaps less accurate values of pdamp will be found. To get more accurate values of pdamp, modify Pset for stage 1 or stage 2 to increase |P0 - Pset| above 10."
+            f"The ratio of |P0 - Pset| to pressure fluctuations is f = {f}. "
+            + "For f between 4 and 10, reasonable but perhaps less accurate values of pdamp will be found. "
+            + "To get more accurate values of pdamp, modify Pset for stage 1 or stage 2 to increase |P0 - Pset| above 10."
         )
         if f < 10 and f >= 2.5:
             warnings.warn(UserWarning(str_warn))
-        
 
     def _save_fit(self):
         """
@@ -502,9 +520,10 @@ class SetBerendsenPdamp:
         output["time"] = list(self.time)
         output["pressure"] = list(self.pressure)
         output["fit_pressure"] = list(self._pressure_function(self.fit.params))
-        
+
         with open(Path(self.outdir, "fit.json"), "w", encoding="utf-8") as jf:
             json.dump(output, jf, indent=4)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
