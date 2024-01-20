@@ -313,7 +313,8 @@ def test_simulate_valid_stage_number(mock_lammps, sbp):
     mock_lammps.return_value.file.assert_called_once_with(sbp.stage2_input)
 
 
-def test_simulate_invalid_stage_number(sbp):
+@patch("set_berendsen_pdamp.LammpsLibrary")
+def test_simulate_invalid_stage_number(mock_lammps, sbp):
     """
     Test that the `simulate` function raises a ValueError if the stage number is not 1 or 2.
     """
