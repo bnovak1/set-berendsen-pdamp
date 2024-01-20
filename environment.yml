@@ -1,0 +1,10 @@
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - pip
+  - lmfit
+  - mpi4py
+  - numpy
+  - pip:
+      - pylammpsmpi
