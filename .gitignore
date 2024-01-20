@@ -166,7 +166,7 @@ cython_debug/
 # LAMMPS
 log.lammps
 output/
-stage1.data
+examples/Ni_EAM_solid/input/stage1.data
 stage1.lmp
 stage2.lmp
 lammps*.tar.gz
