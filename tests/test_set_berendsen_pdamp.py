@@ -323,7 +323,8 @@ def test_simulate_invalid_stage_number(mock_lammps, sbp):
         sbp.simulate(3)
 
 
-def test_simulate_no_data_file(sbp):
+@patch("set_berendsen_pdamp.LammpsLibrary")
+def test_simulate_no_data_file(mock_lammps, sbp):
     """
     Test that the `simulate` function raises a FileNotFoundError if stage1.data does not exist after stage 1.
     """
