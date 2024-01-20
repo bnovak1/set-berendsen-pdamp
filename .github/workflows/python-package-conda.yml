@@ -30,5 +30,5 @@ jobs:
         flake8 */[A-Za-z]*.py --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with pytest
       run: |
-        conda install -y pytest
-        pytest tests/test_set_berendsen_pdamp.py
+        conda install -y pytest pandas scipy
+        pytest -k "not test_optimization"
