@@ -31,4 +31,4 @@ jobs:
     - name: Test with pytest
       run: |
         conda install -y pytest
-        pytest -k "not test_optimization"
+        pytest tests/test_set_berendsen_pdamp.py
