@@ -36,7 +36,10 @@ jobs:
         flake8 */[A-Za-z]*.py --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Install Singularity
       run: |
-        sudo apt-get update && sudo apt-get install -y singularity-ce
+        sudo apt install -y wget
+        wget https://github.com/sylabs/singularity/releases/download/v4.0.2/singularity-ce_4.0.2-jammy_amd64.deb
+        sudo dpkg -i singularity-ce_4.0.2-jammy_amd64.deb
+        rm singularity-ce_4.0.2-jammy_amd64.deb
     - name: Download singularity image
       run: |
         singularity pull container/python_3.11_lammps_2aug2023.sif library://jaglion/set_berendsen_pdamp/python_3.11_lammps_2aug2023
