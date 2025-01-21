@@ -6,6 +6,5 @@ dependencies:
   - lmfit
   - mpi4py
   - numpy
-  - singularity=3.8.6
   - pip:
       - pylammpsmpi

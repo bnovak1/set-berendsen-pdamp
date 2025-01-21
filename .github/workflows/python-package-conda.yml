@@ -39,5 +39,5 @@ jobs:
         singularity pull container/python_3.11_lammps_2aug2023.sif library://jaglion/set_berendsen_pdamp/python_3.11_lammps_2aug2023
     - name: Test with pytest
       run: |
-        conda install -y pytest pandas scipy
+        conda install -y pytest pandas scipy singularity=3.8.6
         ./run_tests.sh 1
