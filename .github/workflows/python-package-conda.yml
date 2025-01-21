@@ -26,9 +26,7 @@ jobs:
         echo $CONDA/bin >> $GITHUB_PATH
     - name: Install dependencies
       run: |
-        conda config --add channels conda-forge
-        conda install -y pip lmfit mpi4py numpy
-        pip install pylammpsmpi
+        conda env update -f environment.yml -n base
     - name: Lint with flake8
       run: |
         conda install -y flake8
@@ -38,7 +36,7 @@ jobs:
         flake8 */[A-Za-z]*.py --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Download singularity image
       run: |
-        conda install -y singularity=3.8.6
+        conda install -y singularity=3.8.6 -c conda-forge
         singularity pull container/python_3.11_lammps_2aug2023.sif library://jaglion/set_berendsen_pdamp/python_3.11_lammps_2aug2023
     - name: Test with pytest
       run: |
