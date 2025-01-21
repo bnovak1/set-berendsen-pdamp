@@ -35,6 +35,20 @@ pip install pylammpsmpi
 
 If you need any extra LAMMPS packages, you must compile LAMMPS yourself and use pip to install pylammpsmpi. LAMMPS must be installed as a library and with the python module. The [calphy package documentation](https://calphy.org/en/latest/gettingstarted.html) explains how to do this. Also, see the [LAMMPS documentation for installing with the python module](https://docs.lammps.org/Python_install.html). Note that you should install any other LAMMPS packages you need using additional `-D` flags with the `cmake` command.
 
+### Singularity
+
+To install Singularity, use the following command:
+
+```shell
+sudo apt-get update && sudo apt-get install -y singularity-ce
+```
+
+To download the Singularity image, use the following command:
+
+```shell
+singularity pull container/python_3.11_lammps_2aug2023.sif library://jaglion/set_berendsen_pdamp/python_3.11_lammps_2aug2023
+```
+
 ## Usage
 
 ### Inputs
