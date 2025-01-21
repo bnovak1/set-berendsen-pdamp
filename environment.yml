@@ -6,5 +6,6 @@ dependencies:
   - lmfit
   - mpi4py
   - numpy
+  - python=3.11
   - pip:
       - pylammpsmpi
