@@ -17,7 +17,7 @@ sys.path.append("tests")
 from sample_pdamp import multi_sims
 
 CONFIG = {
-    "CORES": 4,
+    "CORES": 2,
     "TSTART": 1650,
     "SEED": 8607844,
     "PSET": [30000, 0],
