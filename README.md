@@ -37,10 +37,10 @@ If you need any extra LAMMPS packages, you must compile LAMMPS yourself and use 
 
 ### Singularity
 
-Instead of installing LAMMPS yourself, you could use the Singularity image used in the tests if it meets your requirements or modify the .def file in the container directory and build your own Singularity image. The image used for the tests uses Ubuntu 22.04, LAMMPS with some extra packages installed including MANYBODY, necessary Ubuntu packages, and necessary python packages installed. See the .def file in the container directory for details. To download the Singularity image, use the following command:
+Instead of installing LAMMPS yourself, you could use the Singularity image used in the tests if it meets your requirements or modify the .def file in the container directory and build your own Singularity image. The image for the tests uses Ubuntu 22.04, LAMMPS with some extra packages installed including MANYBODY, and necessary Ubuntu and python packages. See the .def file in the container directory for details. To download the Singularity image, use the following command:
 
 ```shell
-singularity pull container/python_3.11_lammps_2aug2023.sif library://jaglion/set_berendsen_pdamp/python_3.11_lammps_2aug2023
+singularity pull container/python_3.11_lammps_29aug2024.sif library://jaglion/set_berendsen_pdamp/python_3.11_lammps_29aug2024
 ```
 
 The image used in the tests was built with SingularityCE 4.0.2. SingularityCE releases can be downloaded from [here](https://github.com/sylabs/singularity/releases).
