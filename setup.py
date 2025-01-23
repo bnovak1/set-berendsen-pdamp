@@ -19,15 +19,12 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Natural Language :: English",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.9",
-        "Programming Language :: Python :: 3.10",
-        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.11"
     ],
-    python_requires=">=3.8, <3.12",
+    python_requires="3.11",
     install_requires=["lmfit", "numpy", "pytest", "pandas", "scipy", "mpi4py", "openmpi"],
     test_suite="tests",
     project_urls={
-        "Source": "https://github.com/username/set_berendsen_pdamp",
+        "Source": "https://github.com/bnovak1/set-berendsen-pdamp",
     },
 )
