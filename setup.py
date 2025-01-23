@@ -21,7 +21,7 @@ setup(
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.11"
     ],
-    python_requires="3.11",
+    python_requires=">=3.11, <3.12",
     install_requires=["lmfit", "numpy", "pytest", "pandas", "scipy", "mpi4py", "openmpi"],
     test_suite="tests",
     project_urls={
