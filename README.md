@@ -2,7 +2,7 @@
 
 The response in the pressure due to the [Berendsen barostat](http://www.sklogwiki.org/SklogWiki/index.php/Berendsen_barostat) is related to the bulk modulus ([compressibility](http://www.sklogwiki.org/SklogWiki/index.php/Compressibility#Isothermal_compressibility)). For the [press/berendsen fix](https://docs.lammps.org/fix_press_berendsen.html) in [LAMMPS](https://www.lammps.org/#gsc.tab=0), you can either compute the bulk modulus of your system and use the modulus keyword and pdamp or use the default value of modulus and set pdamp to get the desired response.
 
-This package automatically sets pdamp for the Berendsen barostat in LAMMPS by fitting to a target time to the set point pressure, $t_{target}$. For a given value of pdamp, the pressure versus time data is fit to:
+This package automatically sets pdamp for the Berendsen barostat in LAMMPS by fitting to a target time to get to the set point pressure, $t_{target}$. For a given value of pdamp, the pressure versus time data is fit to:
 
 $$ P = P_0 \exp(-t/\tau) + P_{set} (1 - \exp(-t/\tau)) $$
 
