@@ -3,7 +3,7 @@
 # Python & LAMMPS versions from command line
 # Default to 3.11 & 2Aug2023
 PYTHON_VERSION=${1:-3.11}
-LAMMPS_VERSION=${2:-2Aug2023}
+LAMMPS_VERSION=${2:-29Aug2024}
 
 # Output directory
 outdir=/home/bnovak1/singularity/set_berendsen_pdamp

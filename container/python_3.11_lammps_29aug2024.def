@@ -1,0 +1,82 @@
+Bootstrap: docker
+From: ubuntu:22.04
+
+%help
+    Container for set-berendsen-pdamp with LAMMPS and Python environment
+    Contains LAMMPS 29Aug2024 compiled with MPI support and Python bindings
+    Python 3.11 environment with scientific computing packages
+
+%environment
+    export PATH=/app/miniconda3/bin:$PATH
+    export PYTHONPATH=/app/miniconda3/lib/python3.11/site-packages:$PYTHONPATH
+    export LD_LIBRARY_PATH=/app/miniconda3/lib:$LD_LIBRARY_PATH
+
+%post
+    # Set noninteractive installation
+    export DEBIAN_FRONTEND=noninteractive
+
+    # Create app directory
+    mkdir -p /app
+    cd /app
+
+    # Update and upgrade
+    apt-get update && apt-get upgrade -y
+
+    # Install necessary ubuntu packages
+    apt-get install -y cmake curl gcc g++ openssh-client
+
+    # Install miniconda
+    curl -LO https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+    bash Miniconda3-latest-Linux-x86_64.sh -b -p /app/miniconda3
+    rm Miniconda3-latest-Linux-x86_64.sh
+    /app/miniconda3/bin/conda clean --all --yes
+
+    # Initialize conda
+    eval "$(/app/miniconda3/bin/conda shell.bash hook)"
+    conda init
+    conda config --append channels conda-forge
+
+    # Install python packages
+    PYTHON_VERSION=3.11
+    conda install -y python=$PYTHON_VERSION \
+        pytest lmfit mpi4py numpy openmpi pandas scipy
+    conda clean --all --yes
+
+    # Download and install LAMMPS
+    LAMMPS_VERSION=29Aug2024
+    curl -LO https://download.lammps.org/tars/lammps-${LAMMPS_VERSION}.tar.gz
+    tar -xzf lammps-${LAMMPS_VERSION}.tar.gz
+    rm lammps-${LAMMPS_VERSION}.tar.gz
+    mv lammps-${LAMMPS_VERSION} lammps
+
+    # Install LAMMPS as a library and python module
+    cd lammps
+    mkdir build_lib
+    cd build_lib
+    cmake -D BUILD_LIB=ON -D BUILD_SHARED_LIBS=ON -D BUILD_MPI=ON -D PKG_MPIIO=ON \
+          -D LAMMPS_EXCEPTIONS=yes -D PKG_MANYBODY=ON -D PKG_MISC=ON \
+          -D PKG_EXTRA-COMPUTE=ON -D PKG_EXTRA-DUMP=ON -D PKG_EXTRA-FIX=ON \
+          -D PKG_EXTRA-PAIR=ON ../cmake
+    make -j 4
+    cp liblammps.so* ../src
+    cd ../src
+    make install-python
+    mkdir -p $CONDA_PREFIX/include/lammps
+    cp library.h $CONDA_PREFIX/include/lammps
+    cp liblammps.so* $CONDA_PREFIX/lib
+
+    # Install pylammpsmpi
+    pip install pylammpsmpi
+
+    # Clean up
+    apt-get clean
+    conda clean --all --yes
+
+%runscript
+    exec /bin/bash "$@"
+
+%labels
+    Author tajrkala@gmail.com
+    Version v1.0
+    LAMMPS_Version 29Aug2024
+    Python_Version 3.11

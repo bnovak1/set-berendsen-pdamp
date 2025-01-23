@@ -42,7 +42,7 @@ jobs:
         rm singularity-ce_4.0.2-jammy_amd64.deb
     - name: Download singularity image
       run: |
-        singularity pull container/python_3.11_lammps_2aug2023.sif library://jaglion/set_berendsen_pdamp/python_3.11_lammps_2aug2023
+        singularity pull container/python_3.11_lammps_29aug2024.sif library://jaglion/set_berendsen_pdamp/python_3.11_lammps_2aug2023
     - name: Test with pytest
       run: |
         conda install -y pytest pandas scipy

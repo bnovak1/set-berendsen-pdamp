@@ -6,7 +6,7 @@
 opt_flag=${1:-1}
 
 python_version="3.11"
-lammps_version="2Aug2023"
+lammps_version="29Aug2024"
 
 # Run tests not requiring LAMMPS    
 singularity exec container/python_${python_version}_lammps_${lammps_version,,}.sif \
