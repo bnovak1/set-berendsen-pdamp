@@ -21,8 +21,6 @@ def multi_sims(seeds, base_dir="tests", infile="input/config.json"):
     with open(infile, "r", encoding="utf-8") as jf:
         config = json.load(jf)
 
-    data_output = pd.DataFrame([], columns=["seed", "pdamp", "t_set", "tau", "P0"])
-
     for seed in seeds:
         config["SEED"] = int(seed)
 
@@ -45,20 +43,23 @@ def multi_sims(seeds, base_dir="tests", infile="input/config.json"):
             }
         )
 
-        data_output = pd.concat([data_output, fit_df], axis=0)
+        try:
+            data_output = fit_df
+        except NameError:
+            data_output = pd.concat([data_output, fit_df], axis=0)
 
     return config, data_output
 
 
 if __name__ == "__main__":
-    config, data_output = multi_sims(np.unique(np.random.randint(1e6, 1e7, size=1000)))
+    CONFIG, DATA_OUTPUT = multi_sims(np.unique(np.random.randint(1e6, 1e7, size=1000)))
 
     output = {
         "description": "Values of pdamp obtained with different random seeds. " +
         "The config key is the input file used for the optimization except the seed is changed. " +
         "The data key contains the seed, pdamp, t_set, tau, and P0 values obtained from the optimizations.",
-        "config": config,
-        "data": data_output.to_dict(orient="list"),
+        "config": CONFIG,
+        "data": DATA_OUTPUT.to_dict(orient="list"),
     }
     with open(Path("tests/pdamp_samples.json"), "w", encoding="utf-8") as jf:
         json.dump(output, jf, indent=4)
