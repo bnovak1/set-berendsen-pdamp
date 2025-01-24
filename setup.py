@@ -22,7 +22,7 @@ setup(
         "Programming Language :: Python :: 3.11"
     ],
     python_requires=">=3.11, <3.12",
-    install_requires=["lmfit", "numpy", "pytest", "pandas", "scipy", "mpi4py", "openmpi"],
+    install_requires=[],
     test_suite="tests",
     project_urls={
         "Source": "https://github.com/bnovak1/set-berendsen-pdamp",
