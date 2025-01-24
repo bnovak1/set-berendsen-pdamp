@@ -19,6 +19,18 @@ The value of pdamp is chosen so that $t_{set} \approx t_{target}$. In the absenc
 
 ### This package
 
+Until a package is available and assuming git and conda are already installed:
+
+```shell
+git clone https://github.com/bnovak1/set-berendsen-pdamp
+cd set-berendsen-pdamp
+conda env create -f environment.yml -n set_berendsen_pdamp
+conda activate set_berendsen_pdamp
+pip install .
+```
+
+Note that pylammpsmpi and LAMMPS are also requirements (not in environment.yml), but how they are installed may depend on what LAMMPS packages you need. See the next section.
+
 ### LAMMPS & pylammpsmpi
 
 If you don't need any extra LAMMPS packages and you are using conda, then installing [pylammpsmpi](https://pylammpsmpi.readthedocs.io/en/latest/installation.html) will also install LAMMPS.
