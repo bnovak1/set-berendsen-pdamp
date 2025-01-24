@@ -102,7 +102,7 @@ The green points represent "good" values of $f$ where pdamp does not vary too mu
 ### Python script
 
 ```python
-from set_Berendsen_Pdamp import SetBerendsenPdamp
+from set_berendsen_pdamp import SetBerendsenPdamp
 set_pdamp = SetBerendsenPdamp('examples/Ni_EAM_solid/input/config.json')
 set_pdamp()
 ```
