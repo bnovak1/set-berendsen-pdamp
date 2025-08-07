@@ -20,7 +20,7 @@ def config():
     """
     Returns a sample configuration dictionary for testing.
     """
-    config = {
+    config_dict = {
         "CORES": 4,
         "TSTART": 1650,
         "SEED": 8607844,
@@ -37,10 +37,11 @@ def config():
         },
         "OUTDIR": "tests/output",
     }
-    yield config
+    yield config_dict
     
     # Teardown: Remove config dictionary
-    config.clear()
+    config_dict.clear()
+    del config_dict
 
 @pytest.fixture
 def sbp(config):
