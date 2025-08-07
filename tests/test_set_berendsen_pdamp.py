@@ -387,7 +387,7 @@ def test_fit_tau_empty_pset(sbp):
     sbp.pressure = np.array([1.0, 0.9, 0.8, 0.7, 0.6])
     sbp.pset = []
     with pytest.raises(IndexError):
-        sbp_instance._fit_tau()
+        sbp._fit_tau()
 
 
 def test_fit_tau_non_iterable_pressure(sbp):
@@ -522,29 +522,29 @@ def test_check_f(sbp):
         """
 
         p0 = f_target + 1.0
-        sbp_instance.pressure = p0 * np.exp(-sbp_instance.time / tau) + sbp_instance.pset[1] * (1.0 - np.exp(-sbp_instance.time / tau))
-        p_rand = np.random.normal(0, 1.0, len(sbp_instance.pressure))
-        sbp_instance.pressure += p_rand
+        sbp.pressure = p0 * np.exp(-sbp.time / tau) + sbp.pset[1] * (1.0 - np.exp(-sbp.time / tau))
+        p_rand = np.random.normal(0, 1.0, len(sbp.pressure))
+        sbp.pressure += p_rand
 
         params = lmfit.Parameters()
         params.add("p0", value=p0)
-        sbp_instance.fit = lambda: None
-        sbp_instance.fit.params = params
+        sbp.fit = lambda: None
+        sbp.fit.params = params
 
     # f_target = 15. Assert that no exception was raised
     generate_data(15.0)
-    sbp_instance._check_f()
+    sbp._check_f()
     assert True
 
     # f_target = 7.0. Assert that a UserWarning was raised
     generate_data(7.0)
     with pytest.raises(UserWarning):
-        sbp_instance._check_f()
+        sbp._check_f()
 
     # f_target = 2.0. Assert that a ValueError was raised
     generate_data(2.0)
     with pytest.raises(ValueError):
-        sbp_instance._check_f()
+        sbp._check_f()
 
 
 def test_save_fit(sbp):
