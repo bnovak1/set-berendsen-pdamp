@@ -13,38 +13,92 @@ import pytest
 from unittest.mock import MagicMock, patch
 
 from set_berendsen_pdamp import SetBerendsenPdamp
-
-CONFIG = {
-    "CORES": 4,
-    "TSTART": 1650,
-    "SEED": 8607844,
-    "PSET": [30000, 0],
-    "SIM_TIME_STAGE2": 3,
-    "PDAMP_INITIAL": 30000,
-    "T_TARGET": 1.0,
-    "DT_TOL": 0.001,
-    "INDIR": "tests/input",
-    "POTENTIAL_FILE": "potential.lmp",
-    "LAMMPS_INPUT": {
-        "STAGE1": {"TEMPLATE": "stage1_template.lmp", "INPUT": "stage1.lmp"},
-        "STAGE2": {"TEMPLATE": "stage2_template.lmp", "INPUT": "stage2.lmp"},
-    },
-    "OUTDIR": "tests/output",
-}
-
-CONFIG_FILE = Path("tests/input/config.json")
-
-with open(CONFIG_FILE, "w", encoding="utf-8") as jf:
-    json.dump(CONFIG, jf, indent=4)
-
+import shutil
 
 @pytest.fixture
-def sbp():
+def config():
+    """
+    Returns a sample configuration dictionary for testing.
+    """
+    config = {
+        "CORES": 4,
+        "TSTART": 1650,
+        "SEED": 8607844,
+        "PSET": [30000, 0],
+        "SIM_TIME_STAGE2": 3,
+        "PDAMP_INITIAL": 30000,
+        "T_TARGET": 1.0,
+        "DT_TOL": 0.001,
+        "INDIR": "tests/input",
+        "POTENTIAL_FILE": "potential.lmp",
+        "LAMMPS_INPUT": {
+            "STAGE1": {"TEMPLATE": "stage1_template.lmp", "INPUT": "stage1.lmp"},
+            "STAGE2": {"TEMPLATE": "stage2_template.lmp", "INPUT": "stage2.lmp"},
+        },
+        "OUTDIR": "tests/output",
+    }
+    yield config
+    
+    # Teardown: Remove config dictionary
+    config.clear()
+
+@pytest.fixture
+def sbp(config):
     """
     Returns a SetBerendsenPdamp object initialized with CONFIG_FILE.
     """
-    return SetBerendsenPdamp(CONFIG_FILE)
+    
+    config_file = Path("tests/input/config.json")
 
+    with open(config_file, "w", encoding="utf-8") as jf:
+        json.dump(config, jf, indent=4)
+    
+    sbp_instance = SetBerendsenPdamp(config_file)
+    yield sbp_instance
+   
+    # Clean up the config file
+    if config_file.exists():
+        config_file.unlink()
+        
+@pytest.fixture
+def config_missing(config):
+    """
+    Returns a config file with a missing key for testing.
+    """
+    # Remove a key from the config dictionary
+    config_missing = copy.deepcopy(config)
+    config_missing.pop("CORES", None)
+
+    config_file = Path("tests/input/incomplete_config.json")
+
+    with open(config_file, "w", encoding="utf-8") as jf:
+        json.dump(config_missing, jf, indent=4)
+        
+    yield config_file
+
+    # Teardown: Clean up any files created during tests
+    if config_file.exists():
+        config_file.unlink()    
+        
+@pytest.fixture
+def config_no_stage1(config):
+    """
+    Returns a config file with no stage1 keys for testing.
+    """
+    # Remove stage1 keys from the config
+    config_no_stage1 = copy.deepcopy(config)
+    config_no_stage1["LAMMPS_INPUT"].pop("STAGE1", None)
+    
+    config_file = Path("tests/input/no_stage1_config.json")
+    
+    with open(config_file, "w", encoding="utf-8") as jf:
+        json.dump(config_no_stage1, jf, indent=4)
+        
+    yield config_file
+
+    # Teardown: Clean up any files created during tests
+    if config_file.exists():
+        config_file.unlink()
 
 def test_init_valid_config(sbp):
     """
@@ -77,24 +131,17 @@ def test_init_invalid_config():
         SetBerendsenPdamp("invalid_config.json")
 
 
-def test_init_missing_keys():
+def test_init_missing_keys(config_missing):
     """
     Test that a `SetBerendsenPdamp` object raises a KeyError if the config file is missing a key.
     """
 
-    # Remove a key from the config
-    incomplete_config = copy.deepcopy(CONFIG)
-    incomplete_config.pop("CORES")
-    with open("incomplete_config.json", "w", encoding="utf-8") as jf:
-        json.dump(incomplete_config, jf)
-
     # Test that the SetBerendsenPdamp object raises a KeyError
     with pytest.raises(KeyError):
-        SetBerendsenPdamp("incomplete_config.json")
-    Path("incomplete_config.json").unlink()
+        SetBerendsenPdamp(config_missing)
 
 
-def test_init_no_stage1_keys():
+def test_init_no_stage1_keys(config_no_stage1):
     """
     Test case to verify the behavior of a `SetBerendsenPdamp` object initialization when the
     'STAGE1' key is missing from the config file and the stage1.data file does not exist.
@@ -103,30 +150,14 @@ def test_init_no_stage1_keys():
     # Rename stage1.data
     Path("tests/input/stage1.data").rename("tests/input/stage1.data.bak")
 
-    # Remove stage1 keys from the config
-    no_stage1_config = copy.deepcopy(CONFIG)
-    no_stage1_config["LAMMPS_INPUT"].pop("STAGE1")
-    with open("no_stage1_config.json", "w", encoding="utf-8") as jf:
-        json.dump(no_stage1_config, jf)
-
-    # Test that the SetBerendsenPdamp object raises an AttributeError
+   # Test that the SetBerendsenPdamp object raises an AttributeError
     with pytest.raises(AttributeError):
-        SetBerendsenPdamp("no_stage1_config.json")
-    Path("no_stage1_config.json").unlink()
+        SetBerendsenPdamp(config_no_stage1)
 
     # Rename stage1.data.bak back to stage1.data
     Path("tests/input/stage1.data.bak").rename("tests/input/stage1.data")
 
 
-# @patch.object(SetBerendsenPdamp, "optimize_pdamp")
-# @patch.object(SetBerendsenPdamp, "_plot_fit")
-# def test_call(mock_plot_fit, mock_optimize_pdamp, sbp):
-#     """
-#     Test the __call__ method of the sbp object.
-#     """
-#     sbp.__call__()
-#     mock_optimize_pdamp.assert_called_once()
-#     mock_plot_fit.assert_called_once()
 def test_call(sbp):
     """
     Test the __call__ method of the sbp object.
@@ -356,7 +387,7 @@ def test_fit_tau_empty_pset(sbp):
     sbp.pressure = np.array([1.0, 0.9, 0.8, 0.7, 0.6])
     sbp.pset = []
     with pytest.raises(IndexError):
-        sbp._fit_tau()
+        sbp_instance._fit_tau()
 
 
 def test_fit_tau_non_iterable_pressure(sbp):
@@ -474,7 +505,7 @@ def test_check_f(sbp):
     Test the _check_f method when the f is about 15.
     """
 
-    # Parameters for the fale pressure data
+    # Parameters for the fake pressure data
     sbp.pset = [1.0, 1.0]
     tau = 1.0
 
@@ -491,29 +522,29 @@ def test_check_f(sbp):
         """
 
         p0 = f_target + 1.0
-        sbp.pressure = p0 * np.exp(-sbp.time / tau) + sbp.pset[1] * (1.0 - np.exp(-sbp.time / tau))
-        p_rand = np.random.normal(0, 1.0, len(sbp.pressure))
-        sbp.pressure += p_rand
+        sbp_instance.pressure = p0 * np.exp(-sbp_instance.time / tau) + sbp_instance.pset[1] * (1.0 - np.exp(-sbp_instance.time / tau))
+        p_rand = np.random.normal(0, 1.0, len(sbp_instance.pressure))
+        sbp_instance.pressure += p_rand
 
         params = lmfit.Parameters()
         params.add("p0", value=p0)
-        sbp.fit = lambda: None
-        sbp.fit.params = params
+        sbp_instance.fit = lambda: None
+        sbp_instance.fit.params = params
 
     # f_target = 15. Assert that no exception was raised
     generate_data(15.0)
-    sbp._check_f()
+    sbp_instance._check_f()
     assert True
 
     # f_target = 7.0. Assert that a UserWarning was raised
     generate_data(7.0)
     with pytest.raises(UserWarning):
-        sbp._check_f()
+        sbp_instance._check_f()
 
     # f_target = 2.0. Assert that a ValueError was raised
     generate_data(2.0)
     with pytest.raises(ValueError):
-        sbp._check_f()
+        sbp_instance._check_f()
 
 
 def test_save_fit(sbp):
