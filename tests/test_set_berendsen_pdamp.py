@@ -67,13 +67,13 @@ def config_missing(config):
     Returns a config file with a missing key for testing.
     """
     # Remove a key from the config dictionary
-    config_missing = copy.deepcopy(config)
-    config_missing.pop("CORES", None)
+    modified_config = copy.deepcopy(config)
+    modified_config.pop("CORES", None)
 
     config_file = Path("tests/input/incomplete_config.json")
 
     with open(config_file, "w", encoding="utf-8") as jf:
-        json.dump(config_missing, jf, indent=4)
+        json.dump(modified_config, jf, indent=4)
         
     yield config_file
 
@@ -87,13 +87,13 @@ def config_no_stage1(config):
     Returns a config file with no stage1 keys for testing.
     """
     # Remove stage1 keys from the config
-    config_no_stage1 = copy.deepcopy(config)
-    config_no_stage1["LAMMPS_INPUT"].pop("STAGE1", None)
+    modified_config = copy.deepcopy(config)
+    modified_config["LAMMPS_INPUT"].pop("STAGE1", None)
     
     config_file = Path("tests/input/no_stage1_config.json")
     
     with open(config_file, "w", encoding="utf-8") as jf:
-        json.dump(config_no_stage1, jf, indent=4)
+        json.dump(modified_config, jf, indent=4)
         
     yield config_file
 
