@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "set-berendsen-pdamp"
+version = "0.1.0"
+description = "Set Pdamp for Berendsen barostat to obtain a target relaxation time."
+readme = "README.md"
+authors = [
+    {name = "Brian Novak", email = "tajrkala@gmail.com"},
+]
+keywords = ["Berendsen barostat", "LAMMPS", "Pdamp", "optimization"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+]
+requires-python = ">=3.11, <3.12"
+dependencies = []
+
+[project.urls]
+Source = "https://github.com/bnovak1/set-berendsen-pdamp"
+
+[tool.setuptools.packages.find]
+include = ["set_berendsen_pdamp", "set_berendsen_pdamp.*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
